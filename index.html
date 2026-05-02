@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Economics Practice Hub</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__content">
+      <p class="eyebrow">Economics Study Website</p>
+      <h1>Practice Questions for Core Microeconomics Topics</h1>
+      <p class="hero__text">
+        Review foundations, markets, government policy, consumer theory, firm behavior,
+        and market power with mixed question types and instant feedback.
+      </p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#practice">Start practicing</a>
+        <button class="button button--ghost" id="showAllBtn" type="button">Show all topics</button>
+      </div>
+    </div>
+    <div class="hero__stats">
+      <div class="stat">
+        <span class="stat__label">Questions</span>
+        <strong class="stat__value" id="questionCount">0</strong>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Question Types</span>
+        <strong class="stat__value">4</strong>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Topics Covered</span>
+        <strong class="stat__value" id="topicCount">0</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout" id="practice">
+    <aside class="sidebar">
+      <div class="sidebar__panel">
+        <h2>Course Parts</h2>
+        <nav id="partNav" class="part-nav"></nav>
+      </div>
+
+      <div class="sidebar__panel">
+        <h2>Progress</h2>
+        <div class="progress-card">
+          <p><strong id="answeredCount">0</strong> answered</p>
+          <p><strong id="correctCount">0</strong> correct</p>
+          <p><strong id="accuracyRate">0%</strong> accuracy</p>
+        </div>
+      </div>
+
+      <div class="sidebar__panel">
+        <h2>Question Types</h2>
+        <ul class="type-list">
+          <li>Multiple choice</li>
+          <li>Multi-select</li>
+          <li>True/False</li>
+          <li>Short answer</li>
+        </ul>
+      </div>
+    </aside>
+
+    <section class="content">
+      <div class="toolbar">
+        <div>
+          <h2>Practice Set</h2>
+          <p>Select a course part or work through the full set.</p>
+        </div>
+        <label class="filter">
+          <span>Jump to part</span>
+          <select id="partFilter"></select>
+        </label>
+      </div>
+
+      <div id="partsContainer" class="parts-container"></div>
+    </section>
+  </main>
+
+  <template id="questionTemplate">
+    <article class="question-card">
+      <div class="question-card__header">
+        <div>
+          <p class="question-card__topic"></p>
+          <h3 class="question-card__prompt"></h3>
+        </div>
+        <span class="question-card__type"></span>
+      </div>
+      <div class="question-card__body"></div>
+      <div class="question-card__actions">
+        <button class="button button--secondary check-btn" type="button">Check answer</button>
+        <button class="button button--ghost reset-btn" type="button">Reset</button>
+      </div>
+      <div class="feedback" aria-live="polite"></div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
