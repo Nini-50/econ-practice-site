@@ -701,6 +701,15 @@ function randomChoice(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function shuffleArray(items) {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(0, index);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function formatNumber(value) {
   const rounded = Math.round(value * 100) / 100;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
@@ -1043,34 +1052,37 @@ function getEligibleTopicData(topicIds, allowedTypes) {
   return { eligibleTopics, eligibleTypes };
 }
 
-function pickTopicForType(type, eligibleTopics, topicUsage, typeUsage) {
-  const candidates = eligibleTopics.filter(topic => topic.availableTypes.includes(type));
+function chooseLeastUsed(items, usage, getKey = item => item) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const leastUsage = Math.min(...items.map(item => usage[getKey(item)] || 0));
+  const leastUsedItems = items.filter(item => (usage[getKey(item)] || 0) === leastUsage);
+  return randomChoice(leastUsedItems);
+}
+
+function pickBalancedTopic(candidates, topicUsage, partUsage) {
   if (candidates.length === 0) {
     return null;
   }
 
-  return candidates.reduce((best, topic) => {
-    if (!best) {
-      return topic;
-    }
-
-    const bestTopicUsage = topicUsage[best.id] || 0;
-    const topicCount = topicUsage[topic.id] || 0;
-    if (topicCount !== bestTopicUsage) {
-      return topicCount < bestTopicUsage ? topic : best;
-    }
-
-    const bestTypeCount = typeUsage[type] || 0;
-    const currentTypeCount = typeUsage[type] || 0;
-    if (currentTypeCount !== bestTypeCount) {
-      return currentTypeCount < bestTypeCount ? topic : best;
-    }
-
-    return Math.random() < 0.5 ? topic : best;
-  }, null);
+  const leastPartUsage = Math.min(...candidates.map(topic => partUsage[topic.partId] || 0));
+  const leastUsedParts = candidates.filter(topic => (partUsage[topic.partId] || 0) === leastPartUsage);
+  return chooseLeastUsed(leastUsedParts, topicUsage, topic => topic.id);
 }
 
-function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage) {
+function pickTypeForTopic(topic, eligibleTypes, typeUsage) {
+  const matchingTypes = topic.availableTypes.filter(type => eligibleTypes.includes(type));
+  return chooseLeastUsed(matchingTypes, typeUsage);
+}
+
+function pickTopicForType(type, eligibleTopics, topicUsage, partUsage) {
+  const candidates = eligibleTopics.filter(topic => topic.availableTypes.includes(type));
+  return pickBalancedTopic(candidates, topicUsage, partUsage);
+}
+
+function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage) {
   const question = generateQuestionFromTopicAndType(topic.id, type);
   if (!question) {
     return false;
@@ -1079,6 +1091,7 @@ function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage) {
   questions.push(question);
   topicUsage[topic.id] = (topicUsage[topic.id] || 0) + 1;
   typeUsage[type] = (typeUsage[type] || 0) + 1;
+  partUsage[topic.partId] = (partUsage[topic.partId] || 0) + 1;
   return true;
 }
 
@@ -1093,64 +1106,75 @@ function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
   const questions = [];
   const topicUsage = {};
   const typeUsage = {};
+  const partUsage = {};
   const shouldCoverTopics = Boolean(options.coverTopics);
   const shouldCoverTypes = Boolean(options.coverTypes);
-  const minimumCoverageCount = Math.min(
-    30,
-    Math.max(
-      safeCount,
-      shouldCoverTopics ? eligibleTopics.length : 0,
-      shouldCoverTypes ? eligibleTypes.length : 0
-    )
-  );
+  const shouldCoverParts = Boolean(options.coverParts);
+  const shouldShuffleResults = Boolean(options.shuffleResults);
+  const strictCoverage = Boolean(options.strictCoverage);
+  const eligiblePartIds = [...new Set(eligibleTopics.map(topic => topic.partId))];
+  const minimumCoverageCount = strictCoverage
+    ? Math.min(
+        30,
+        Math.max(
+          safeCount,
+          shouldCoverTopics ? eligibleTopics.length : 0,
+          shouldCoverTypes ? eligibleTypes.length : 0,
+          shouldCoverParts ? eligiblePartIds.length : 0
+        )
+      )
+    : safeCount;
 
-  if (shouldCoverTopics && minimumCoverageCount >= eligibleTopics.length) {
-    eligibleTopics.forEach(topic => {
+  if (shouldCoverParts) {
+    const shuffledPartIds = shuffleArray(eligiblePartIds);
+    shuffledPartIds.forEach(partId => {
       if (questions.length >= minimumCoverageCount) {
         return;
       }
-      const leastUsedType = topic.availableTypes
-        .filter(type => eligibleTypes.includes(type))
-        .sort((a, b) => (typeUsage[a] || 0) - (typeUsage[b] || 0))[0];
-      addBalancedQuestion(questions, topic, leastUsedType, topicUsage, typeUsage);
+
+      const partTopics = eligibleTopics.filter(topic => topic.partId === partId);
+      const topic = pickBalancedTopic(partTopics, topicUsage, partUsage);
+      const type = topic ? pickTypeForTopic(topic, eligibleTypes, typeUsage) : null;
+      if (topic && type) {
+        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage);
+      }
+    });
+  }
+
+  if (shouldCoverTopics && minimumCoverageCount >= eligibleTopics.length) {
+    shuffleArray(eligibleTopics).forEach(topic => {
+      if (questions.length >= minimumCoverageCount) {
+        return;
+      }
+      const leastUsedType = pickTypeForTopic(topic, eligibleTypes, typeUsage);
+      if (leastUsedType) {
+        addBalancedQuestion(questions, topic, leastUsedType, topicUsage, typeUsage, partUsage);
+      }
     });
   }
 
   if (shouldCoverTypes) {
-    eligibleTypes.forEach(type => {
+    shuffleArray(eligibleTypes).forEach(type => {
       if (questions.length >= minimumCoverageCount || (typeUsage[type] || 0) > 0) {
         return;
       }
-      const topic = pickTopicForType(type, eligibleTopics, topicUsage, typeUsage);
+      const topic = pickTopicForType(type, eligibleTopics, topicUsage, partUsage);
       if (topic) {
-        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage);
+        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage);
       }
     });
   }
 
   while (questions.length < minimumCoverageCount) {
-    const topic = eligibleTopics.reduce((best, current) => {
-      if (!best) {
-        return current;
-      }
-      const bestUsage = topicUsage[best.id] || 0;
-      const currentUsage = topicUsage[current.id] || 0;
-      if (currentUsage !== bestUsage) {
-        return currentUsage < bestUsage ? current : best;
-      }
-      return Math.random() < 0.5 ? current : best;
-    }, null);
+    const topic = pickBalancedTopic(eligibleTopics, topicUsage, partUsage);
+    const type = topic ? pickTypeForTopic(topic, eligibleTypes, typeUsage) : null;
 
-    const type = topic.availableTypes
-      .filter(candidate => eligibleTypes.includes(candidate))
-      .sort((a, b) => (typeUsage[a] || 0) - (typeUsage[b] || 0))[0];
-
-    if (!addBalancedQuestion(questions, topic, type, topicUsage, typeUsage)) {
+    if (!topic || !type || !addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage)) {
       break;
     }
   }
 
-  return questions;
+  return shouldShuffleResults ? shuffleArray(questions) : questions;
 }
 
 function renderNav() {
@@ -1545,7 +1569,9 @@ function generateCustomStudySet() {
   renderSession(
     generateQuestionSet(selectedTopics, selectedTypes, adjustedCount, {
       coverTopics: true,
-      coverTypes: true
+      coverTypes: true,
+      shuffleResults: true,
+      strictCoverage: true
     }),
     "Custom study set",
     adjustedCount === requestedCount
@@ -1556,7 +1582,11 @@ function generateCustomStudySet() {
 
 function generateAllTopicsSet(count) {
   renderSession(
-    generateQuestionSet(flatTopics.map(topic => topic.id), QUESTION_TYPES.map(type => type.id), count),
+    generateQuestionSet(flatTopics.map(topic => topic.id), QUESTION_TYPES.map(type => type.id), count, {
+      coverParts: true,
+      coverTypes: true,
+      shuffleResults: true
+    }),
     "Random all-topic review",
     `${count} randomized question${count === 1 ? "" : "s"} drawn from every topic and question type.`
   );
