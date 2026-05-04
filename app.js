@@ -605,7 +605,8 @@ const QUESTION_TYPES = [
 ];
 
 const STORAGE_KEYS = {
-  accounts: "econPracticeAccounts.v1"
+  accounts: "econPracticeAccounts.v1",
+  activeUser: "econPracticeActiveUser.v1"
 };
 
 function inferQuestionType(question) {
@@ -742,6 +743,18 @@ function saveAccounts(accounts) {
   localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(accounts));
 }
 
+function loadActiveUsernameKey() {
+  return localStorage.getItem(STORAGE_KEYS.activeUser);
+}
+
+function saveActiveUsernameKey(usernameKey) {
+  localStorage.setItem(STORAGE_KEYS.activeUser, usernameKey);
+}
+
+function clearActiveUsernameKey() {
+  localStorage.removeItem(STORAGE_KEYS.activeUser);
+}
+
 function createEmptyTopicProgress() {
   return { attempted: 0, correct: 0 };
 }
@@ -862,12 +875,33 @@ function applyLoggedInUser(usernameKey, user) {
   currentUser = user;
   ensureTopicProgressShape(currentUser);
   persistCurrentUser();
+  saveActiveUsernameKey(usernameKey);
   setAuthenticatedState(true);
   renderAccountPanel();
   renderTopicProgress();
   authPassword.value = "";
   authConfirmPassword.value = "";
   setAuthFeedback("", false);
+}
+
+function restoreActiveSession() {
+  const activeUsernameKey = loadActiveUsernameKey();
+
+  if (!activeUsernameKey) {
+    return false;
+  }
+
+  const accounts = loadAccounts();
+  const user = accounts[activeUsernameKey];
+
+  if (!user) {
+    clearActiveUsernameKey();
+    return false;
+  }
+
+  authUsername.value = user.username;
+  applyLoggedInUser(activeUsernameKey, user);
+  return true;
 }
 
 function createAccount() {
@@ -934,11 +968,14 @@ function login() {
 function logout() {
   currentUsernameKey = null;
   currentUser = null;
+  clearActiveUsernameKey();
   setAuthenticatedState(false);
   renderAccountPanel();
   renderTopicProgress();
+  authUsername.value = "";
   authPassword.value = "";
   authConfirmPassword.value = "";
+  setAuthFeedback("", false);
   workspaceTitle.textContent = "Question workspace";
   workspaceSubtitle.textContent = "Choose a topic or generate a mixed set to begin.";
   renderEmptyState("Log in to continue", "Create or log in to your browser-local account to generate and save progress.");
@@ -1537,7 +1574,8 @@ function init() {
   renderEmptyState();
   renderAccountPanel();
   renderTopicProgress();
-  setAuthenticatedState(false);
+  const restoredSession = restoreActiveSession();
+  setAuthenticatedState(restoredSession);
 
   loginBtn.addEventListener("click", login);
   createAccountBtn.addEventListener("click", createAccount);
