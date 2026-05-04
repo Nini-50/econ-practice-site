@@ -695,10 +695,69 @@ function generateQuestionFromTopic(topicId, allowedTypes = topicById[topicId].av
   return buildQuestion(topic, randomChoice(matchingGenerators).create());
 }
 
-function generateQuestionSet(topicIds, allowedTypes, count) {
+function generateQuestionFromTopicAndType(topicId, type) {
+  const topic = topicById[topicId];
+  const matchingGenerators = topic.generatorPool.filter(generator => generator.type === type);
+
+  if (matchingGenerators.length === 0) {
+    return null;
+  }
+
+  return buildQuestion(topic, randomChoice(matchingGenerators).create());
+}
+
+function getEligibleTopicData(topicIds, allowedTypes) {
   const eligibleTopics = flatTopics.filter(topic =>
     topicIds.includes(topic.id) && topic.availableTypes.some(type => allowedTypes.includes(type))
   );
+  const eligibleTypes = allowedTypes.filter(type =>
+    eligibleTopics.some(topic => topic.availableTypes.includes(type))
+  );
+
+  return { eligibleTopics, eligibleTypes };
+}
+
+function pickTopicForType(type, eligibleTopics, topicUsage, typeUsage) {
+  const candidates = eligibleTopics.filter(topic => topic.availableTypes.includes(type));
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return candidates.reduce((best, topic) => {
+    if (!best) {
+      return topic;
+    }
+
+    const bestTopicUsage = topicUsage[best.id] || 0;
+    const topicCount = topicUsage[topic.id] || 0;
+    if (topicCount !== bestTopicUsage) {
+      return topicCount < bestTopicUsage ? topic : best;
+    }
+
+    const bestTypeCount = typeUsage[type] || 0;
+    const currentTypeCount = typeUsage[type] || 0;
+    if (currentTypeCount !== bestTypeCount) {
+      return currentTypeCount < bestTypeCount ? topic : best;
+    }
+
+    return Math.random() < 0.5 ? topic : best;
+  }, null);
+}
+
+function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage) {
+  const question = generateQuestionFromTopicAndType(topic.id, type);
+  if (!question) {
+    return false;
+  }
+
+  questions.push(question);
+  topicUsage[topic.id] = (topicUsage[topic.id] || 0) + 1;
+  typeUsage[type] = (typeUsage[type] || 0) + 1;
+  return true;
+}
+
+function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
+  const { eligibleTopics, eligibleTypes } = getEligibleTopicData(topicIds, allowedTypes);
 
   if (eligibleTopics.length === 0) {
     return [];
@@ -706,12 +765,62 @@ function generateQuestionSet(topicIds, allowedTypes, count) {
 
   const safeCount = clampQuestionCount(count);
   const questions = [];
+  const topicUsage = {};
+  const typeUsage = {};
+  const shouldCoverTopics = Boolean(options.coverTopics);
+  const shouldCoverTypes = Boolean(options.coverTypes);
+  const minimumCoverageCount = Math.min(
+    30,
+    Math.max(
+      safeCount,
+      shouldCoverTopics ? eligibleTopics.length : 0,
+      shouldCoverTypes ? eligibleTypes.length : 0
+    )
+  );
 
-  while (questions.length < safeCount) {
-    const topic = randomChoice(eligibleTopics);
-    const question = generateQuestionFromTopic(topic.id, allowedTypes);
-    if (question) {
-      questions.push(question);
+  if (shouldCoverTopics && minimumCoverageCount >= eligibleTopics.length) {
+    eligibleTopics.forEach(topic => {
+      if (questions.length >= minimumCoverageCount) {
+        return;
+      }
+      const leastUsedType = topic.availableTypes
+        .filter(type => eligibleTypes.includes(type))
+        .sort((a, b) => (typeUsage[a] || 0) - (typeUsage[b] || 0))[0];
+      addBalancedQuestion(questions, topic, leastUsedType, topicUsage, typeUsage);
+    });
+  }
+
+  if (shouldCoverTypes) {
+    eligibleTypes.forEach(type => {
+      if (questions.length >= minimumCoverageCount || (typeUsage[type] || 0) > 0) {
+        return;
+      }
+      const topic = pickTopicForType(type, eligibleTopics, topicUsage, typeUsage);
+      if (topic) {
+        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage);
+      }
+    });
+  }
+
+  while (questions.length < minimumCoverageCount) {
+    const topic = eligibleTopics.reduce((best, current) => {
+      if (!best) {
+        return current;
+      }
+      const bestUsage = topicUsage[best.id] || 0;
+      const currentUsage = topicUsage[current.id] || 0;
+      if (currentUsage !== bestUsage) {
+        return currentUsage < bestUsage ? current : best;
+      }
+      return Math.random() < 0.5 ? current : best;
+    }, null);
+
+    const type = topic.availableTypes
+      .filter(candidate => eligibleTypes.includes(candidate))
+      .sort((a, b) => (typeUsage[a] || 0) - (typeUsage[b] || 0))[0];
+
+    if (!addBalancedQuestion(questions, topic, type, topicUsage, typeUsage)) {
+      break;
     }
   }
 
@@ -1038,16 +1147,28 @@ function setCheckedValues(selector, checked) {
 }
 
 function generateCustomStudySet() {
-  const count = clampQuestionCount(setCountInput.value);
-  setCountInput.value = String(count);
-
   const selectedTypes = getCheckedValues('input[name="questionType"]');
   const selectedTopics = getCheckedValues('input[name="topicFilter"]');
+  const { eligibleTopics, eligibleTypes } = getEligibleTopicData(selectedTopics, selectedTypes);
+
+  if (eligibleTopics.length === 0 || eligibleTypes.length === 0) {
+    renderSession([], "Custom study set", "No questions matched your selected topics and question types.");
+    return;
+  }
+
+  const requestedCount = clampQuestionCount(setCountInput.value);
+  const adjustedCount = Math.min(30, Math.max(requestedCount, eligibleTopics.length, eligibleTypes.length));
+  setCountInput.value = String(adjustedCount);
 
   renderSession(
-    generateQuestionSet(selectedTopics, selectedTypes, count),
+    generateQuestionSet(selectedTopics, selectedTypes, adjustedCount, {
+      coverTopics: true,
+      coverTypes: true
+    }),
     "Custom study set",
-    `${count} randomized question${count === 1 ? "" : "s"} based on your selected topics and question types.`
+    adjustedCount === requestedCount
+      ? `${adjustedCount} randomized question${adjustedCount === 1 ? "" : "s"} covering your selected topics and question types.`
+      : `Expanded to ${adjustedCount} questions so the set can include every selected topic and question type.`
   );
 }
 
