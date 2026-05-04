@@ -801,23 +801,59 @@ function renderTopicProgress() {
 
   ensureTopicProgressShape(currentUser);
 
-  flatTopics.forEach(topic => {
-    const stats = currentUser.progress[topic.id];
-    const accuracy = stats.attempted === 0 ? 0 : Math.round((stats.correct / stats.attempted) * 100);
+  practiceParts.forEach(part => {
+    const partTopics = part.topics.map(topic => {
+      const stats = currentUser.progress[topic.id] || createEmptyTopicProgress();
+      const accuracy = stats.attempted === 0 ? 0 : Math.round((stats.correct / stats.attempted) * 100);
+      return { topic, stats, accuracy };
+    });
+    const attemptedTopics = partTopics.filter(entry => entry.stats.attempted > 0);
+    const partAverage = attemptedTopics.length === 0
+      ? 0
+      : Math.round(
+        attemptedTopics.reduce((sum, entry) => sum + entry.accuracy, 0) / attemptedTopics.length
+      );
+    const totalAttempts = partTopics.reduce((sum, entry) => sum + entry.stats.attempted, 0);
 
-    const item = document.createElement("article");
-    item.className = "progress-item";
-    item.innerHTML = `
-      <div class="progress-item__top">
-        <div>
-          <p class="progress-item__title">${topic.title}</p>
-          <div class="progress-item__meta">${stats.attempted} attempt${stats.attempted === 1 ? "" : "s"} • ${stats.correct} correct</div>
+    const details = document.createElement("details");
+    details.className = "progress-part";
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = `
+      <div class="progress-part__summary">
+        <div class="progress-part__left">
+          <span class="progress-part__arrow">▶</span>
+          <div>
+            <p class="progress-part__title">${part.title}</p>
+            <div class="progress-part__meta">${attemptedTopics.length} started topic${attemptedTopics.length === 1 ? "" : "s"} • ${totalAttempts} total attempt${totalAttempts === 1 ? "" : "s"}</div>
+          </div>
         </div>
-        <div class="progress-item__score">${accuracy}%</div>
+        <div class="progress-part__score">${partAverage}%</div>
       </div>
-      <div class="progress-bar"><div class="progress-bar__fill" style="width: ${accuracy}%;"></div></div>
     `;
-    topicProgressList.appendChild(item);
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "progress-part__body";
+
+    partTopics.forEach(({ topic, stats, accuracy }) => {
+      const item = document.createElement("article");
+      item.className = "progress-item";
+      item.innerHTML = `
+        <div class="progress-item__top">
+          <div>
+            <p class="progress-item__title">${topic.title}</p>
+            <div class="progress-item__meta">${stats.attempted} attempt${stats.attempted === 1 ? "" : "s"} • ${stats.correct} correct</div>
+          </div>
+          <div class="progress-item__score">${accuracy}%</div>
+        </div>
+        <div class="progress-bar"><div class="progress-bar__fill" style="width: ${accuracy}%;"></div></div>
+      `;
+      body.appendChild(item);
+    });
+
+    details.appendChild(body);
+    topicProgressList.appendChild(details);
   });
 }
 
