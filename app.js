@@ -591,24 +591,49 @@ const practiceParts = [
   }
 ];
 
+const QUESTION_TYPES = [
+  { id: "multiple-choice", label: "Multiple choice" },
+  { id: "multi-select", label: "Multi-select" },
+  { id: "true-false", label: "True / False" },
+  { id: "short-answer", label: "Short answer" }
+];
+
 const flatTopics = practiceParts.flatMap(part =>
-  part.topics.map(topic => ({
-    ...topic,
-    partId: part.id,
-    partTitle: part.title
-  }))
+  part.topics.map(topic => {
+    const generatorPool = topic.generators.map(create => ({
+      create,
+      type: create().type
+    }));
+
+    return {
+      ...topic,
+      partId: part.id,
+      partTitle: part.title,
+      generatorPool,
+      availableTypes: [...new Set(generatorPool.map(generator => generator.type))]
+    };
+  })
 );
 
 const topicById = Object.fromEntries(flatTopics.map(topic => [topic.id, topic]));
 
 const partNav = document.getElementById("partNav");
 const partsContainer = document.getElementById("partsContainer");
+const typeFilters = document.getElementById("typeFilters");
+const topicFilters = document.getElementById("topicFilters");
 const topicSelect = document.getElementById("topicSelect");
 const topicCountSelect = document.getElementById("topicCountSelect");
 const mixedCountSelect = document.getElementById("mixedCountSelect");
+const setCountInput = document.getElementById("setCountInput");
 const generateTopicBtn = document.getElementById("generateTopicBtn");
 const generateMixedBtn = document.getElementById("generateMixedBtn");
 const generateMixedHeroBtn = document.getElementById("generateMixedHeroBtn");
+const generateCustomBtn = document.getElementById("generateCustomBtn");
+const generateAllTopicsBtn = document.getElementById("generateAllTopicsBtn");
+const selectAllTypesBtn = document.getElementById("selectAllTypesBtn");
+const clearTypesBtn = document.getElementById("clearTypesBtn");
+const selectAllTopicsBtn = document.getElementById("selectAllTopicsBtn");
+const clearTopicsBtn = document.getElementById("clearTopicsBtn");
 const clearWorkspaceBtn = document.getElementById("clearWorkspaceBtn");
 const questionCount = document.getElementById("questionCount");
 const topicCount = document.getElementById("topicCount");
@@ -631,15 +656,6 @@ function randomChoice(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-function shuffle(items) {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
 function formatNumber(value) {
   const rounded = Math.round(value * 100) / 100;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
@@ -647,6 +663,14 @@ function formatNumber(value) {
 
 function normalizeAnswer(value) {
   return value.toLowerCase().replace(/\$/g, "").replace(/,/g, "").replace(/\s+/g, "");
+}
+
+function clampQuestionCount(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 10;
+  }
+  return Math.min(30, Math.max(1, Math.round(parsed)));
 }
 
 function buildQuestion(topic, generated) {
@@ -660,28 +684,38 @@ function buildQuestion(topic, generated) {
   };
 }
 
-function generateQuestionFromTopic(topicId) {
+function generateQuestionFromTopic(topicId, allowedTypes = topicById[topicId].availableTypes) {
   const topic = topicById[topicId];
-  const generator = randomChoice(topic.generators);
-  return buildQuestion(topic, generator());
-}
+  const matchingGenerators = topic.generatorPool.filter(generator => allowedTypes.includes(generator.type));
 
-function generateTopicSet(topicId, count) {
-  return Array.from({ length: count }, () => generateQuestionFromTopic(topicId));
-}
-
-function generateMixedSet(count) {
-  const topics = shuffle(flatTopics);
-  const selectedTopics = [];
-
-  while (selectedTopics.length < count) {
-    if (topics.length === 0) {
-      topics.push(...shuffle(flatTopics));
-    }
-    selectedTopics.push(topics.pop());
+  if (matchingGenerators.length === 0) {
+    return null;
   }
 
-  return selectedTopics.map(topic => buildQuestion(topic, randomChoice(topic.generators)()));
+  return buildQuestion(topic, randomChoice(matchingGenerators).create());
+}
+
+function generateQuestionSet(topicIds, allowedTypes, count) {
+  const eligibleTopics = flatTopics.filter(topic =>
+    topicIds.includes(topic.id) && topic.availableTypes.some(type => allowedTypes.includes(type))
+  );
+
+  if (eligibleTopics.length === 0) {
+    return [];
+  }
+
+  const safeCount = clampQuestionCount(count);
+  const questions = [];
+
+  while (questions.length < safeCount) {
+    const topic = randomChoice(eligibleTopics);
+    const question = generateQuestionFromTopic(topic.id, allowedTypes);
+    if (question) {
+      questions.push(question);
+    }
+  }
+
+  return questions;
 }
 
 function renderNav() {
@@ -692,6 +726,53 @@ function renderNav() {
     link.href = `#${part.id}`;
     link.textContent = part.title;
     partNav.appendChild(link);
+  });
+}
+
+function renderTypeFilters() {
+  typeFilters.innerHTML = "";
+
+  QUESTION_TYPES.forEach(type => {
+    const label = document.createElement("label");
+    label.className = "checkbox-option";
+    label.innerHTML = `
+      <input type="checkbox" name="questionType" value="${type.id}" checked />
+      <span>${type.label}</span>
+    `;
+    typeFilters.appendChild(label);
+  });
+}
+
+function renderTopicFilters() {
+  topicFilters.innerHTML = "";
+
+  practiceParts.forEach(part => {
+    const wrapper = document.createElement("section");
+    wrapper.className = "topic-filter-group";
+
+    const title = document.createElement("h4");
+    title.textContent = part.title;
+    wrapper.appendChild(title);
+
+    const list = document.createElement("div");
+    list.className = "topic-filter-list";
+
+    part.topics.forEach(topic => {
+      const topicMeta = topicById[topic.id];
+      const label = document.createElement("label");
+      label.className = "checkbox-option";
+      label.innerHTML = `
+        <input type="checkbox" name="topicFilter" value="${topic.id}" checked />
+        <span>
+          ${topic.title}
+          <span class="checkbox-option__meta">${topicMeta.availableTypes.map(formatType).join(" • ")}</span>
+        </span>
+      `;
+      list.appendChild(label);
+    });
+
+    wrapper.appendChild(list);
+    topicFilters.appendChild(wrapper);
   });
 }
 
@@ -719,15 +800,17 @@ function renderPartSections() {
     grid.className = "topic-grid";
 
     part.topics.forEach(topic => {
+      const topicMeta = topicById[topic.id];
       const card = document.createElement("article");
       card.className = "topic-card";
       card.innerHTML = `
         <div class="topic-card__meta">${part.title}</div>
         <h3>${topic.title}</h3>
         <p>${topic.description}</p>
+        <p class="topic-card__meta">${topicMeta.availableTypes.map(formatType).join(" • ")}</p>
         <div class="topic-card__actions">
           <button class="button button--secondary" type="button" data-topic-id="${topic.id}" data-count="1">1 question</button>
-          <button class="button button--ghost" type="button" data-topic-id="${topic.id}" data-count="3">3 questions</button>
+          <button class="button button--ghost" type="button" data-topic-id="${topic.id}" data-count="5">5 questions</button>
         </div>
       `;
       grid.appendChild(card);
@@ -742,9 +825,9 @@ function renderPartSections() {
       const topicId = button.dataset.topicId;
       const count = Number(button.dataset.count);
       topicSelect.value = topicId;
-      topicCountSelect.value = String(count);
+      topicCountSelect.value = String(Math.min(count, 10));
       renderSession(
-        generateTopicSet(topicId, count),
+        generateQuestionSet([topicId], topicById[topicId].availableTypes, count),
         `${topicById[topicId].title} practice`,
         count === 1
           ? "Fresh question generated from this topic."
@@ -762,7 +845,10 @@ function renderSession(questions, title, subtitle) {
   questionWorkspace.innerHTML = "";
 
   if (questions.length === 0) {
-    renderEmptyState();
+    renderEmptyState(
+      "No matching questions",
+      "Choose at least one topic and one question type with overlapping coverage."
+    );
     return;
   }
 
@@ -773,11 +859,11 @@ function renderSession(questions, title, subtitle) {
   document.getElementById("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderEmptyState() {
+function renderEmptyState(title = "No questions generated yet", message = "Use the controls above or click a topic card below.") {
   questionWorkspace.innerHTML = `
     <div class="empty-state">
-      <h3>No questions generated yet</h3>
-      <p>Use the topic or mixed controls above, or click a topic card below.</p>
+      <h3>${title}</h3>
+      <p>${message}</p>
     </div>
   `;
 }
@@ -939,11 +1025,47 @@ function formatType(type) {
   return "Short answer";
 }
 
+function getCheckedValues(selector) {
+  return Array.from(document.querySelectorAll(selector))
+    .filter(input => input.checked)
+    .map(input => input.value);
+}
+
+function setCheckedValues(selector, checked) {
+  document.querySelectorAll(selector).forEach(input => {
+    input.checked = checked;
+  });
+}
+
+function generateCustomStudySet() {
+  const count = clampQuestionCount(setCountInput.value);
+  setCountInput.value = String(count);
+
+  const selectedTypes = getCheckedValues('input[name="questionType"]');
+  const selectedTopics = getCheckedValues('input[name="topicFilter"]');
+
+  renderSession(
+    generateQuestionSet(selectedTopics, selectedTypes, count),
+    "Custom study set",
+    `${count} randomized question${count === 1 ? "" : "s"} based on your selected topics and question types.`
+  );
+}
+
+function generateAllTopicsSet(count) {
+  renderSession(
+    generateQuestionSet(flatTopics.map(topic => topic.id), QUESTION_TYPES.map(type => type.id), count),
+    "Random all-topic review",
+    `${count} randomized question${count === 1 ? "" : "s"} drawn from every topic and question type.`
+  );
+}
+
 function init() {
   questionCount.textContent = "Unlimited";
   topicCount.textContent = String(flatTopics.length);
 
   renderNav();
+  renderTypeFilters();
+  renderTopicFilters();
   renderTopicSelect();
   renderPartSections();
   renderEmptyState();
@@ -951,9 +1073,9 @@ function init() {
 
   generateTopicBtn.addEventListener("click", () => {
     const topicId = topicSelect.value;
-    const count = Number(topicCountSelect.value);
+    const count = clampQuestionCount(topicCountSelect.value);
     renderSession(
-      generateTopicSet(topicId, count),
+      generateQuestionSet([topicId], topicById[topicId].availableTypes, count),
       `${topicById[topicId].title} practice`,
       count === 1
         ? "Fresh question generated from this topic."
@@ -962,21 +1084,39 @@ function init() {
   });
 
   generateMixedBtn.addEventListener("click", () => {
-    const count = Number(mixedCountSelect.value);
-    renderSession(
-      generateMixedSet(count),
-      "Mixed all-topic review",
-      `Fresh ${count}-question set generated across the course.`
-    );
+    const count = clampQuestionCount(mixedCountSelect.value);
+    generateAllTopicsSet(count);
   });
 
   generateMixedHeroBtn.addEventListener("click", () => {
-    const count = Number(mixedCountSelect.value);
-    renderSession(
-      generateMixedSet(count),
-      "Mixed all-topic review",
-      `Fresh ${count}-question set generated across the course.`
-    );
+    const count = clampQuestionCount(mixedCountSelect.value || 10);
+    generateAllTopicsSet(count);
+  });
+
+  generateCustomBtn.addEventListener("click", generateCustomStudySet);
+
+  generateAllTopicsBtn.addEventListener("click", () => {
+    setCheckedValues('input[name="questionType"]', true);
+    setCheckedValues('input[name="topicFilter"]', true);
+    const count = clampQuestionCount(setCountInput.value);
+    setCountInput.value = String(count);
+    generateAllTopicsSet(count);
+  });
+
+  selectAllTypesBtn.addEventListener("click", () => {
+    setCheckedValues('input[name="questionType"]', true);
+  });
+
+  clearTypesBtn.addEventListener("click", () => {
+    setCheckedValues('input[name="questionType"]', false);
+  });
+
+  selectAllTopicsBtn.addEventListener("click", () => {
+    setCheckedValues('input[name="topicFilter"]', true);
+  });
+
+  clearTopicsBtn.addEventListener("click", () => {
+    setCheckedValues('input[name="topicFilter"]', false);
   });
 
   clearWorkspaceBtn.addEventListener("click", () => {

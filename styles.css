@@ -201,9 +201,19 @@ select {
   gap: 16px;
 }
 
+.generator-card--wide {
+  grid-column: 1 / -1;
+}
+
 .generator-card {
   display: grid;
   gap: 14px;
+}
+
+.generator-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .generator-card h3,
@@ -230,6 +240,86 @@ select {
 .field span {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.builder-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.filter-groups {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.fieldset {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fieldset legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.fieldset__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.checkbox-grid,
+.topic-filter-groups,
+.topic-filter-list {
+  display: grid;
+  gap: 10px;
+}
+
+.checkbox-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.topic-filter-group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfcff;
+  display: grid;
+  gap: 10px;
+}
+
+.topic-filter-group h4 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.checkbox-option {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fbfcff;
+}
+
+.checkbox-option input {
+  margin-top: 3px;
+}
+
+.checkbox-option__meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 4px;
 }
 
 select,
@@ -420,7 +510,10 @@ input[type="text"] {
   .hero,
   .layout,
   .generator-panel,
-  .topic-grid {
+  .topic-grid,
+  .filter-groups,
+  .builder-grid,
+  .checkbox-grid {
     grid-template-columns: 1fr;
   }
 

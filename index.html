@@ -67,14 +67,55 @@
       <div class="toolbar">
         <div>
           <h2>Generate practice</h2>
-          <p>Choose a topic for targeted review or create a random all-topic set.</p>
+          <p>Build a custom study set by choosing topics, question types, and up to 30 questions.</p>
         </div>
       </div>
 
       <section class="generator-panel">
+        <article class="generator-card generator-card--wide">
+          <h3>Custom study set builder</h3>
+          <p>Create a Quizlet-style practice set with your own mix of topics and question types.</p>
+
+          <div class="builder-grid">
+            <label class="field">
+              <span>Number of questions</span>
+              <input id="setCountInput" type="number" min="1" max="30" value="10" />
+            </label>
+
+            <div class="field">
+              <span>Question types</span>
+              <div class="fieldset__actions">
+                <button class="button button--ghost" id="selectAllTypesBtn" type="button">Select all types</button>
+                <button class="button button--ghost" id="clearTypesBtn" type="button">Clear types</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-groups">
+            <fieldset class="fieldset">
+              <legend>Include question types</legend>
+              <div id="typeFilters" class="checkbox-grid"></div>
+            </fieldset>
+
+            <fieldset class="fieldset">
+              <legend>Include topics</legend>
+              <div class="fieldset__actions">
+                <button class="button button--ghost" id="selectAllTopicsBtn" type="button">Select all topics</button>
+                <button class="button button--ghost" id="clearTopicsBtn" type="button">Clear topics</button>
+              </div>
+              <div id="topicFilters" class="topic-filter-groups"></div>
+            </fieldset>
+          </div>
+
+          <div class="generator-card__actions">
+            <button class="button button--secondary" id="generateCustomBtn" type="button">Generate custom study set</button>
+            <button class="button button--ghost" id="generateAllTopicsBtn" type="button">Random all-topic set</button>
+          </div>
+        </article>
+
         <article class="generator-card">
-          <h3>Topic practice</h3>
-          <p>Pick one topic and generate a fresh question or a short set.</p>
+          <h3>Quick topic drill</h3>
+          <p>Pick one topic and generate a focused short set.</p>
           <label class="field">
             <span>Topic</span>
             <select id="topicSelect"></select>
@@ -85,20 +126,22 @@
               <option value="1">1 question</option>
               <option value="3">3 questions</option>
               <option value="5">5 questions</option>
+              <option value="10">10 questions</option>
             </select>
           </label>
           <button class="button button--secondary" id="generateTopicBtn" type="button">Generate topic practice</button>
         </article>
 
         <article class="generator-card">
-          <h3>Mixed all-topic review</h3>
-          <p>Generate a randomized set from across all parts of the course.</p>
+          <h3>Quick mixed review</h3>
+          <p>Generate a randomized set from all topics with no filters.</p>
           <label class="field">
             <span>Questions</span>
             <select id="mixedCountSelect">
-              <option value="3">3 questions</option>
               <option value="5">5 questions</option>
               <option value="10">10 questions</option>
+              <option value="20">20 questions</option>
+              <option value="30">30 questions</option>
             </select>
           </label>
           <button class="button button--secondary" id="generateMixedBtn" type="button">Generate mixed practice</button>
