@@ -990,8 +990,10 @@ function renderQuestion(question, number) {
   const prompt = fragment.querySelector(".question-card__prompt");
   const type = fragment.querySelector(".question-card__type");
   const body = fragment.querySelector(".question-card__body");
+  const hintBtn = fragment.querySelector(".hint-btn");
   const checkBtn = fragment.querySelector(".check-btn");
   const resetBtn = fragment.querySelector(".reset-btn");
+  const hint = fragment.querySelector(".hint");
   const feedback = fragment.querySelector(".feedback");
 
   card.dataset.questionId = question.id;
@@ -1018,6 +1020,19 @@ function renderQuestion(question, number) {
     body.appendChild(input);
   }
 
+  hintBtn.addEventListener("click", () => {
+    const isVisible = hint.classList.contains("is-visible");
+    if (isVisible) {
+      hint.className = "hint";
+      hint.textContent = "";
+      hintBtn.textContent = "Show hint";
+      return;
+    }
+
+    setHint(hint, buildHint(question));
+    hintBtn.textContent = "Hide hint";
+  });
+
   checkBtn.addEventListener("click", () => {
     const evaluation = evaluateQuestion(question, body);
     if (!evaluation.answered) {
@@ -1035,7 +1050,7 @@ function renderQuestion(question, number) {
   });
 
   resetBtn.addEventListener("click", () => {
-    resetQuestion(question, body, feedback);
+    resetQuestion(question, body, hint, feedback, hintBtn);
     delete currentResults[question.id];
     updateProgress();
   });
@@ -1109,7 +1124,55 @@ function setFeedback(node, message, isCorrect) {
   node.innerHTML = `<strong>${isCorrect ? "Nice work" : "Review this idea"}</strong><span>${message}</span>`;
 }
 
-function resetQuestion(question, body, feedback) {
+function setHint(node, message) {
+  node.className = "hint is-visible";
+  node.innerHTML = `<strong>Hint</strong><span>${message}</span>`;
+}
+
+function buildHint(question) {
+  const prompt = question.prompt.toLowerCase();
+  const topic = question.topic.toLowerCase();
+
+  if (prompt.includes("comparative advantage")) {
+    return "Compute the opportunity cost of each good for each country first, then pick the country with the lower opportunity cost for the good being asked about.";
+  }
+  if (prompt.includes("opportunity cost")) {
+    return "Add up every relevant thing the decision-maker gives up, including forgone earnings and any direct costs mentioned in the scenario.";
+  }
+  if (prompt.includes("elasticity")) {
+    return "Use elasticity as percentage change in quantity divided by percentage change in price, and focus on the absolute value before naming the category.";
+  }
+  if (prompt.includes("budget line")) {
+    return "Ask whether income changed or whether the price of one good changed; that tells you whether the line shifts in parallel or rotates around an intercept.";
+  }
+  if (prompt.includes("economic profit")) {
+    return "Economic profit subtracts both explicit costs and implicit opportunity costs from total revenue.";
+  }
+  if (prompt.includes("marginal revenue") || prompt.includes("marginal cost")) {
+    return "Compare MR and MC first, then check whether the firm is still covering variable costs before deciding whether it should keep producing.";
+  }
+  if (topic.includes("public goods")) {
+    return "Look for a good that is both hard to exclude people from and one person's use does not significantly reduce another person's use.";
+  }
+  if (topic.includes("externalities")) {
+    return "Think about whether the activity is overproduced or underproduced relative to the social optimum, then choose policies that move the market in the corrective direction.";
+  }
+  if (topic.includes("risk") || prompt.includes("expected monetary value")) {
+    return "Separate expected value from preferences: the question is about how a risk-averse person compares certainty with a gamble.";
+  }
+  if (question.type === "multi-select") {
+    return "More than one answer is correct here. Test each option separately instead of looking for a single best choice.";
+  }
+  if (question.type === "short-answer") {
+    return "Identify the key formula or relationship in the prompt, compute carefully, and type only the final value or expression.";
+  }
+  if (question.type === "true-false") {
+    return "Watch for a single word that makes the statement too strong, like always, never, only, or guaranteed.";
+  }
+  return "Start from the core definition behind the topic, eliminate answers that are too absolute, and choose the option that best matches the economic logic.";
+}
+
+function resetQuestion(question, body, hint, feedback, hintBtn) {
   if (question.type === "short-answer") {
     const input = body.querySelector(`input[name="${question.id}"]`);
     input.value = "";
@@ -1119,6 +1182,9 @@ function resetQuestion(question, body, feedback) {
     });
   }
 
+  hint.className = "hint";
+  hint.textContent = "";
+  hintBtn.textContent = "Show hint";
   feedback.className = "feedback";
   feedback.textContent = "";
 }
