@@ -10,20 +10,20 @@
   <header class="hero">
     <div class="hero__content">
       <p class="eyebrow">Economics Study Website</p>
-      <h1>Practice Questions for Core Microeconomics Topics</h1>
+      <h1>Unlimited practice by topic, plus random mixed review</h1>
       <p class="hero__text">
-        Review foundations, markets, government policy, consumer theory, firm behavior,
-        and market power with mixed question types and instant feedback.
+        Generate fresh economics questions whenever you want. Practice one topic at a time
+        or build a mixed set that pulls from across the full course.
       </p>
       <div class="hero__actions">
-        <a class="button button--primary" href="#practice">Start practicing</a>
-        <button class="button button--ghost" id="showAllBtn" type="button">Show all topics</button>
+        <a class="button button--primary" href="#workspace">Start practicing</a>
+        <button class="button button--ghost" id="generateMixedHeroBtn" type="button">Generate mixed set</button>
       </div>
     </div>
     <div class="hero__stats">
       <div class="stat">
-        <span class="stat__label">Questions</span>
-        <strong class="stat__value" id="questionCount">0</strong>
+        <span class="stat__label">Practice Bank</span>
+        <strong class="stat__value" id="questionCount">Unlimited</strong>
       </div>
       <div class="stat">
         <span class="stat__label">Question Types</span>
@@ -36,7 +36,7 @@
     </div>
   </header>
 
-  <main class="layout" id="practice">
+  <main class="layout">
     <aside class="sidebar">
       <div class="sidebar__panel">
         <h2>Course Parts</h2>
@@ -53,12 +53,12 @@
       </div>
 
       <div class="sidebar__panel">
-        <h2>Question Types</h2>
+        <h2>Modes</h2>
         <ul class="type-list">
-          <li>Multiple choice</li>
-          <li>Multi-select</li>
-          <li>True/False</li>
-          <li>Short answer</li>
+          <li>Topic practice</li>
+          <li>Mixed all-topic review</li>
+          <li>Single-question drills</li>
+          <li>Short custom sets</li>
         </ul>
       </div>
     </aside>
@@ -66,14 +66,60 @@
     <section class="content">
       <div class="toolbar">
         <div>
-          <h2>Practice Set</h2>
-          <p>Select a course part or work through the full set.</p>
+          <h2>Generate practice</h2>
+          <p>Choose a topic for targeted review or create a random all-topic set.</p>
         </div>
-        <label class="filter">
-          <span>Jump to part</span>
-          <select id="partFilter"></select>
-        </label>
       </div>
+
+      <section class="generator-panel">
+        <article class="generator-card">
+          <h3>Topic practice</h3>
+          <p>Pick one topic and generate a fresh question or a short set.</p>
+          <label class="field">
+            <span>Topic</span>
+            <select id="topicSelect"></select>
+          </label>
+          <label class="field">
+            <span>Questions</span>
+            <select id="topicCountSelect">
+              <option value="1">1 question</option>
+              <option value="3">3 questions</option>
+              <option value="5">5 questions</option>
+            </select>
+          </label>
+          <button class="button button--secondary" id="generateTopicBtn" type="button">Generate topic practice</button>
+        </article>
+
+        <article class="generator-card">
+          <h3>Mixed all-topic review</h3>
+          <p>Generate a randomized set from across all parts of the course.</p>
+          <label class="field">
+            <span>Questions</span>
+            <select id="mixedCountSelect">
+              <option value="3">3 questions</option>
+              <option value="5">5 questions</option>
+              <option value="10">10 questions</option>
+            </select>
+          </label>
+          <button class="button button--secondary" id="generateMixedBtn" type="button">Generate mixed practice</button>
+        </article>
+      </section>
+
+      <section class="workspace" id="workspace">
+        <div class="workspace__header">
+          <div>
+            <h2 id="workspaceTitle">Question workspace</h2>
+            <p id="workspaceSubtitle">Choose a topic or generate a mixed set to begin.</p>
+          </div>
+          <button class="button button--ghost" id="clearWorkspaceBtn" type="button">Clear workspace</button>
+        </div>
+        <div id="questionWorkspace" class="questions-grid">
+          <div class="empty-state">
+            <h3>No questions generated yet</h3>
+            <p>Use the topic or mixed controls above, or click a topic card below.</p>
+          </div>
+        </div>
+      </section>
 
       <div id="partsContainer" class="parts-container"></div>
     </section>

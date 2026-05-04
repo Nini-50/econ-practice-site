@@ -2,301 +2,686 @@ const practiceParts = [
   {
     id: "part-1",
     title: "Part I: Foundations of Economics",
-    description: "Core models, scarcity, choice, and the logic of trade.",
-    questions: [
+    description: "Core models, scarcity, choice, opportunity cost, and trade.",
+    topics: [
       {
-        id: "q1",
-        topic: "Core Principles of Economics",
-        type: "multiple-choice",
-        prompt: "Which statement best reflects the core idea of economics?",
-        options: [
-          "Resources are unlimited, so markets mainly solve distribution problems.",
-          "People make choices under scarcity, so every decision involves tradeoffs.",
-          "Governments always allocate resources more efficiently than markets.",
-          "Economic growth eliminates the need for choice."
-        ],
-        answer: 1,
-        explanation: "Economics studies how people and societies allocate scarce resources. Scarcity forces choices, and choices create tradeoffs."
+        id: "core-principles",
+        title: "Core Principles of Economics",
+        description: "Scarcity, incentives, tradeoffs, and marginal thinking.",
+        generators: [
+          () => {
+            const scenarios = [
+              {
+                prompt: "A university has enough funding to build either a new dorm or a new library wing, but not both. This situation best illustrates:",
+                options: [
+                  "Scarcity and tradeoffs",
+                  "A positive externality",
+                  "Perfectly elastic demand",
+                  "A natural monopoly"
+                ],
+                answer: 0,
+                explanation: "Scarcity means resources are limited, so choosing one option requires giving up another."
+              },
+              {
+                prompt: "A student studies one more hour because the expected grade improvement is greater than the cost in lost free time. This is an example of:",
+                options: [
+                  "Marginal decision-making",
+                  "Public good provision",
+                  "Price discrimination",
+                  "A sunk cost fallacy"
+                ],
+                answer: 0,
+                explanation: "Economics emphasizes marginal analysis: compare the additional benefit of one more unit with its additional cost."
+              },
+              {
+                prompt: "Which statement best matches a core economic principle?",
+                options: [
+                  "Choices are costless when people act rationally.",
+                  "People respond to incentives and face tradeoffs.",
+                  "Growth eliminates scarcity entirely.",
+                  "Markets always produce equal outcomes."
+                ],
+                answer: 1,
+                explanation: "People respond to incentives and make choices under scarcity, so tradeoffs are central to economics."
+              }
+            ];
+            return randomChoice(scenarios);
+          }
+        ]
       },
       {
-        id: "q2",
-        topic: "Opportunity Cost and Economic Decision-Making",
-        type: "short-answer",
-        prompt: "A student can spend Saturday working for $90 or studying for an exam instead. If the student studies, what is the opportunity cost in dollars?",
-        answers: ["90", "$90"],
-        explanation: "The opportunity cost is the value of the next-best alternative forgone: the $90 the student could have earned."
+        id: "opportunity-cost",
+        title: "Opportunity Cost and Economic Decision-Making",
+        description: "Finding the value of the next-best alternative.",
+        generators: [
+          () => {
+            const wage = randomChoice([15, 18, 20, 24, 30]);
+            const hours = randomChoice([2, 3, 4, 5]);
+            const cost = wage * hours;
+            return {
+              type: "short-answer",
+              prompt: `A student can work for $${wage} per hour for ${hours} hours or spend that time studying instead. If the student studies, what is the opportunity cost in dollars?`,
+              answers: [String(cost), `$${cost}`],
+              explanation: `The opportunity cost is the value of the next-best alternative forgone: $${cost} in lost wages.`
+            };
+          }
+        ]
       },
       {
-        id: "q3",
-        topic: "Absolute Advantage, Comparative Advantage, and Trade",
-        type: "multiple-choice",
-        prompt: "Country A can produce either 10 cars or 20 computers. Country B can produce either 6 cars or 18 computers. Who has the comparative advantage in cars?",
-        options: [
-          "Country A, because it can produce more cars absolutely.",
-          "Country B, because its opportunity cost of producing a car is lower.",
-          "Both countries have the same comparative advantage in cars.",
-          "Neither country, because trade only depends on absolute advantage."
-        ],
-        answer: 1,
-        explanation: "Country A gives up 2 computers per car, while Country B gives up 3 computers per car. The lower opportunity cost means Country A has comparative advantage in cars."
+        id: "trade",
+        title: "Absolute Advantage, Comparative Advantage, and Trade",
+        description: "Comparing productivity and opportunity cost across producers.",
+        generators: [
+          () => {
+            let aBikes;
+            let aShirts;
+            let bBikes;
+            let bShirts;
+            let askGood;
+            let answerIndex;
+            let explanation;
+
+            do {
+              aBikes = randomInt(4, 12);
+              aShirts = randomInt(8, 24);
+              bBikes = randomInt(4, 12);
+              bShirts = randomInt(8, 24);
+              askGood = randomChoice(["bikes", "shirts"]);
+
+              const aBikeCost = aShirts / aBikes;
+              const bBikeCost = bShirts / bBikes;
+              const aShirtCost = aBikes / aShirts;
+              const bShirtCost = bBikes / bShirts;
+
+              if (askGood === "bikes" && aBikeCost !== bBikeCost) {
+                answerIndex = aBikeCost < bBikeCost ? 0 : 1;
+                explanation = `Country A gives up ${formatNumber(aBikeCost)} shirts per bike, while Country B gives up ${formatNumber(bBikeCost)}. The lower opportunity cost means that country has comparative advantage in bikes.`;
+              }
+              if (askGood === "shirts" && aShirtCost !== bShirtCost) {
+                answerIndex = aShirtCost < bShirtCost ? 0 : 1;
+                explanation = `Country A gives up ${formatNumber(aShirtCost)} bikes per shirt, while Country B gives up ${formatNumber(bShirtCost)}. The lower opportunity cost means that country has comparative advantage in shirts.`;
+              }
+            } while (answerIndex === undefined);
+
+            return {
+              type: "multiple-choice",
+              prompt: `Country A can produce either ${aBikes} bikes or ${aShirts} shirts. Country B can produce either ${bBikes} bikes or ${bShirts} shirts. Who has the comparative advantage in ${askGood}?`,
+              options: ["Country A", "Country B", "Both countries", "Neither country"],
+              answer: answerIndex,
+              explanation
+            };
+          }
+        ]
       }
     ]
   },
   {
     id: "part-2",
     title: "Part II: Where Consumers and Producers Meet",
-    description: "Market equilibrium, elasticity, and welfare outcomes.",
-    questions: [
+    description: "Supply, demand, equilibrium, elasticity, and efficiency.",
+    topics: [
       {
-        id: "q4",
-        topic: "Supply, Demand, and the Market Equilibrium",
-        type: "true-false",
-        prompt: "If demand increases while supply stays constant, equilibrium price rises.",
-        answer: true,
-        explanation: "A rightward shift in demand increases both equilibrium price and equilibrium quantity when supply is unchanged."
+        id: "equilibrium",
+        title: "Supply, Demand, and the Market Equilibrium",
+        description: "How shifts change equilibrium price and quantity.",
+        generators: [
+          () => {
+            const scenarios = [
+              {
+                cause: "demand increases while supply stays the same",
+                statement: "equilibrium price rises",
+                truth: true,
+                explanation: "When demand rises with supply unchanged, both equilibrium price and quantity rise."
+              },
+              {
+                cause: "supply decreases while demand stays the same",
+                statement: "equilibrium quantity rises",
+                truth: false,
+                explanation: "When supply decreases with demand unchanged, equilibrium price rises and equilibrium quantity falls."
+              },
+              {
+                cause: "demand decreases while supply stays the same",
+                statement: "equilibrium price falls",
+                truth: true,
+                explanation: "A leftward shift in demand lowers both equilibrium price and quantity."
+              }
+            ];
+            const scenario = randomChoice(scenarios);
+            return {
+              type: "true-false",
+              prompt: `True or false: If ${scenario.cause}, then ${scenario.statement}.`,
+              answer: scenario.truth,
+              explanation: scenario.explanation
+            };
+          }
+        ]
       },
       {
-        id: "q5",
-        topic: "Demand & Supply Elasticity",
-        type: "multiple-choice",
-        prompt: "A 10% increase in price causes quantity demanded to fall by 30%. Demand is:",
-        options: [
-          "Perfectly inelastic",
-          "Inelastic",
-          "Unit elastic",
-          "Elastic"
-        ],
-        answer: 3,
-        explanation: "Elasticity in absolute value is 30% / 10% = 3, which is greater than 1, so demand is elastic."
+        id: "elasticity",
+        title: "Demand & Supply Elasticity",
+        description: "Measuring responsiveness to price changes.",
+        generators: [
+          () => {
+            const priceChange = randomChoice([5, 10, 12, 15]);
+            const type = randomChoice([
+              { label: "Inelastic", multiplier: randomChoice([0.2, 0.4, 0.6]) },
+              { label: "Unit elastic", multiplier: 1 },
+              { label: "Elastic", multiplier: randomChoice([1.5, 2, 3]) }
+            ]);
+            const quantityChange = Math.round(priceChange * type.multiplier);
+            const answerMap = {
+              "Inelastic": 1,
+              "Unit elastic": 2,
+              "Elastic": 3
+            };
+            return {
+              type: "multiple-choice",
+              prompt: `A ${priceChange}% increase in price causes quantity demanded to fall by ${quantityChange}%. Demand is:`,
+              options: ["Perfectly inelastic", "Inelastic", "Unit elastic", "Elastic"],
+              answer: answerMap[type.label],
+              explanation: `Elasticity is ${quantityChange}% / ${priceChange}% = ${formatNumber(quantityChange / priceChange)} in absolute value, so demand is ${type.label.toLowerCase()}.`
+            };
+          }
+        ]
       },
       {
-        id: "q6",
-        topic: "Market Efficiency & Social Welfare",
-        type: "multi-select",
-        prompt: "Which outcomes are typically associated with a perfectly competitive market at equilibrium?",
-        options: [
-          "Maximized total surplus",
-          "No deadweight loss from underproduction or overproduction",
-          "Guaranteed equality of income",
-          "Trades occur up to the point where marginal benefit equals marginal cost"
-        ],
-        answers: [0, 1, 3],
-        explanation: "Competitive equilibrium is efficient in the welfare sense because it maximizes total surplus, but it does not guarantee income equality."
+        id: "market-efficiency",
+        title: "Measuring How Well Markets Work: Market Efficiency & Social Welfare",
+        description: "Total surplus, deadweight loss, and efficient trade.",
+        generators: [
+          () => ({
+            type: "multi-select",
+            prompt: "Which outcomes are typically associated with a perfectly competitive market at equilibrium?",
+            options: [
+              "Total surplus is maximized.",
+              "There is no deadweight loss from underproduction or overproduction.",
+              "Income is distributed equally across all households.",
+              "Trades occur up to the point where marginal benefit equals marginal cost."
+            ],
+            answers: [0, 1, 3],
+            explanation: "Competitive equilibrium is efficient because it maximizes total surplus and equates marginal benefit with marginal cost, but it does not guarantee equality."
+          })
+        ]
       }
     ]
   },
   {
     id: "part-3",
     title: "Part III: When the Government Might Need to Step In",
-    description: "Policy tools, redistribution, public goods, and market failures.",
-    questions: [
+    description: "Interventions, welfare policy, public goods, and externalities.",
+    topics: [
       {
-        id: "q7",
-        topic: "Government Interventions in Markets",
-        type: "multiple-choice",
-        prompt: "A binding price ceiling set below equilibrium generally causes:",
-        options: [
-          "A surplus",
-          "A shortage",
-          "No change in the market",
-          "A rise in producer surplus only"
-        ],
-        answer: 1,
-        explanation: "A price ceiling below equilibrium reduces the price and increases quantity demanded while reducing quantity supplied, creating a shortage."
+        id: "government-interventions",
+        title: "Government Interventions in Markets: Price Controls, Taxes, and Subsidies",
+        description: "How policy changes market outcomes.",
+        generators: [
+          () => {
+            const scenarios = [
+              {
+                prompt: "A binding price ceiling is set below the equilibrium price. What is the most direct result?",
+                options: ["A surplus", "A shortage", "No change", "Higher equilibrium price"],
+                answer: 1,
+                explanation: "A price ceiling below equilibrium increases quantity demanded and reduces quantity supplied, causing a shortage."
+              },
+              {
+                prompt: "A binding price floor is set above the equilibrium price. What is the most direct result?",
+                options: ["A shortage", "A surplus", "No change", "Lower producer revenue by definition"],
+                answer: 1,
+                explanation: "A price floor above equilibrium raises price, reducing quantity demanded and increasing quantity supplied, creating a surplus."
+              },
+              {
+                prompt: "A per-unit tax is placed on sellers in a competitive market. Which statement is true?",
+                options: [
+                  "The tax creates a wedge between the price buyers pay and sellers receive.",
+                  "The market always becomes more efficient.",
+                  "Quantity traded must increase.",
+                  "Producers can never pass any of the tax to consumers."
+                ],
+                answer: 0,
+                explanation: "A tax drives a wedge between buyer and seller prices and typically reduces quantity traded."
+              }
+            ];
+            return randomChoice(scenarios);
+          }
+        ]
       },
       {
-        id: "q8",
-        topic: "Inequality, Poverty, and the Welfare State",
-        type: "true-false",
-        prompt: "Transfer programs can reduce measured income inequality even if market incomes do not change.",
-        answer: true,
-        explanation: "Transfers affect disposable income, so inequality after taxes and transfers can fall even if pre-transfer earnings remain unchanged."
+        id: "inequality-poverty",
+        title: "Inequality, Poverty, and the Welfare State",
+        description: "Transfers, taxes, and distributional outcomes.",
+        generators: [
+          () => {
+            const statements = [
+              {
+                prompt: "True or false: Transfer programs can reduce disposable-income inequality even if market incomes do not change.",
+                answer: true,
+                explanation: "Transfers affect after-tax, after-transfer income, which can reduce measured inequality."
+              },
+              {
+                prompt: "True or false: A more progressive tax-and-transfer system usually has no effect on after-tax income inequality.",
+                answer: false,
+                explanation: "Progressive taxes and transfers are designed partly to compress the distribution of disposable income."
+              }
+            ];
+            return {
+              type: "true-false",
+              ...randomChoice(statements)
+            };
+          }
+        ]
       },
       {
-        id: "q9",
-        topic: "Public Goods",
-        type: "multiple-choice",
-        prompt: "Which good is most likely to be a public good?",
-        options: [
-          "A private tutoring session",
-          "National defense",
-          "A sandwich",
-          "A movie ticket"
-        ],
-        answer: 1,
-        explanation: "National defense is non-rival and non-excludable, which are the key characteristics of a public good."
+        id: "public-goods",
+        title: "Public Goods",
+        description: "Non-rivalry, non-excludability, and free-rider problems.",
+        generators: [
+          () => {
+            const sets = [
+              ["National defense", "A sandwich", "A haircut", "A movie rental"],
+              ["A city siren system", "A private gym membership", "A coffee", "A textbook"],
+              ["Street lighting", "A laptop", "A concert ticket", "A taxi ride"]
+            ];
+            const options = randomChoice(sets);
+            return {
+              type: "multiple-choice",
+              prompt: "Which item is the best example of a public good?",
+              options,
+              answer: 0,
+              explanation: `${options[0]} is closest to a public good because it is largely non-rival and non-excludable.`
+            };
+          }
+        ]
       },
       {
-        id: "q10",
-        topic: "Positive and Negative Externalities",
-        type: "multi-select",
-        prompt: "Which policies can help correct a negative externality from pollution?",
-        options: [
-          "A Pigouvian tax on emissions",
-          "Tradable pollution permits",
-          "A subsidy for each unit of pollution created",
-          "Direct regulation that caps emissions"
-        ],
-        answers: [0, 1, 3],
-        explanation: "Taxes, permits, and direct limits all internalize or constrain the external cost. Subsidizing pollution moves the market in the wrong direction."
+        id: "externalities",
+        title: "Positive and Negative Externalities, Environmental Regulations",
+        description: "When private and social incentives differ.",
+        generators: [
+          () => {
+            const kind = randomChoice(["negative", "positive"]);
+            if (kind === "negative") {
+              return {
+                type: "multi-select",
+                prompt: "A factory creates a negative externality through pollution. Which policies could help move the market toward the socially efficient outcome?",
+                options: [
+                  "A Pigouvian tax on emissions",
+                  "Tradable pollution permits",
+                  "A subsidy for each unit of pollution created",
+                  "Direct regulation that caps emissions"
+                ],
+                answers: [0, 1, 3],
+                explanation: "Taxes, permits, and direct regulation can internalize or limit the external cost. Subsidizing pollution would worsen the problem."
+              };
+            }
+            return {
+              type: "multi-select",
+              prompt: "Vaccination creates a positive externality. Which policies could encourage a more socially efficient level of consumption?",
+              options: [
+                "A subsidy for vaccination",
+                "Public information campaigns",
+                "A tax on vaccination",
+                "Free or low-cost public provision"
+              ],
+              answers: [0, 1, 3],
+              explanation: "Positive externalities lead to underconsumption, so subsidies, public provision, and information can help increase usage."
+            };
+          }
+        ]
       }
     ]
   },
   {
     id: "part-4",
     title: "Part IV: Behind the Demand Curve - Consumer Theory",
-    description: "Utility, constraints, optimization, and choices under uncertainty.",
-    questions: [
+    description: "Utility, budget constraints, consumer choice, and uncertainty.",
+    topics: [
       {
-        id: "q11",
-        topic: "Utility Functions and Budget Sets",
-        type: "multiple-choice",
-        prompt: "If a consumer's income doubles and all prices stay the same, the budget set:",
-        options: [
-          "Shifts inward",
-          "Rotates inward",
-          "Shifts outward in a parallel way",
-          "Does not change"
-        ],
-        answer: 2,
-        explanation: "With higher income and unchanged prices, the consumer can afford more of both goods, so the budget line shifts outward in parallel."
+        id: "utility-budget",
+        title: "Measuring Happiness & Facing Constraints - Utility Functions and Budget Sets",
+        description: "How income and prices shape the budget line.",
+        generators: [
+          () => {
+            const scenarios = [
+              {
+                prompt: "If a consumer's income doubles and all prices stay the same, the budget line:",
+                options: [
+                  "Shifts inward",
+                  "Rotates inward",
+                  "Shifts outward in a parallel way",
+                  "Does not change"
+                ],
+                answer: 2,
+                explanation: "Higher income with unchanged prices shifts the budget line outward in a parallel way."
+              },
+              {
+                prompt: "If the price of good X rises while income and the price of good Y stay the same, the budget line:",
+                options: [
+                  "Rotates inward around the Y-intercept",
+                  "Shifts outward in parallel",
+                  "Rotates outward around the X-intercept",
+                  "Becomes horizontal"
+                ],
+                answer: 0,
+                explanation: "A higher price of X lowers the X-intercept while the Y-intercept stays fixed, so the line rotates inward around the Y-intercept."
+              }
+            ];
+            return randomChoice(scenarios);
+          }
+        ]
       },
       {
-        id: "q12",
-        topic: "Optimal Consumer Decisions",
-        type: "short-answer",
-        prompt: "At an interior optimum, consumers choose bundles where MUx/Px equals what ratio for good y?",
-        answers: ["muy/py", "mu_y/p_y", "muy / py", "marginal utility of y divided by price of y"],
-        explanation: "The equal marginal utility per dollar rule says MUx/Px = MUy/Py at an interior optimum."
+        id: "optimal-consumer",
+        title: "Optimal Consumer Decisions",
+        description: "Choosing bundles that maximize utility subject to a budget.",
+        generators: [
+          () => {
+            const ratio = randomChoice([2, 3, 4, 5, 6]);
+            const px = randomChoice([2, 3, 4, 5]);
+            const py = randomChoice([1, 2, 3, 4, 5]);
+            const mux = ratio * px;
+            const muy = ratio * py;
+            return {
+              type: "short-answer",
+              prompt: `At an interior optimum, a consumer chooses a bundle where MUx/Px = MUy/Py. If MUx = ${mux}, Px = ${px}, and Py = ${py}, what must MUy equal?`,
+              answers: [String(muy)],
+              explanation: `MUx/Px = ${mux}/${px} = ${ratio}, so MUy must satisfy MUy/${py} = ${ratio}. Therefore MUy = ${muy}.`
+            };
+          }
+        ]
       },
       {
-        id: "q13",
-        topic: "Risk and Uncertainty",
-        type: "true-false",
-        prompt: "A risk-averse person always prefers a certain payoff equal to the expected value of a risky gamble.",
-        answer: true,
-        explanation: "By definition, a risk-averse person prefers certainty to a fair gamble with the same expected value."
+        id: "risk-uncertainty",
+        title: "Risk and Uncertainty",
+        description: "Expected value, certainty, and risk preferences.",
+        generators: [
+          () => {
+            const certain = randomChoice([40, 50, 60]);
+            const high = certain * 2 + randomChoice([10, 20]);
+            const expected = high / 2;
+            return {
+              type: "true-false",
+              prompt: `True or false: A risk-averse person may prefer a certain payoff of $${certain} to a gamble with a 50% chance of $${high} and a 50% chance of $0, even though the gamble's expected value is $${expected}.`,
+              answer: true,
+              explanation: "Risk-averse people can prefer certainty to a risky gamble even when the gamble has a higher expected value."
+            };
+          }
+        ]
       }
     ]
   },
   {
     id: "part-5",
     title: "Part V: Behind the Supply Curve - Theory of the Firm",
-    description: "Costs, output choices, and how firms respond in different horizons.",
-    questions: [
+    description: "Costs, profits, production choices, and time horizons.",
+    topics: [
       {
-        id: "q14",
-        topic: "Costs, Revenues, Profits",
-        type: "multiple-choice",
-        prompt: "Economic profit differs from accounting profit because economic profit subtracts:",
-        options: [
-          "Only variable costs",
-          "Implicit and explicit costs",
-          "Only taxes",
-          "Only sunk costs"
-        ],
-        answer: 1,
-        explanation: "Economic profit includes both explicit costs and opportunity costs, including implicit costs."
+        id: "costs-revenues-profits",
+        title: "Costs, Revenues, Profits",
+        description: "Accounting vs. economic profit and cost concepts.",
+        generators: [
+          () => {
+            const revenue = randomChoice([400, 520, 650, 780]);
+            const explicit = randomChoice([180, 220, 260, 300]);
+            const implicit = randomChoice([60, 80, 100, 120]);
+            const profit = revenue - explicit - implicit;
+            return {
+              type: "short-answer",
+              prompt: `A firm's total revenue is $${revenue}, explicit costs are $${explicit}, and implicit costs are $${implicit}. What is economic profit in dollars?`,
+              answers: [String(profit), `$${profit}`],
+              explanation: `Economic profit = total revenue - explicit costs - implicit costs = $${revenue} - $${explicit} - $${implicit} = $${profit}.`
+            };
+          }
+        ]
       },
       {
-        id: "q15",
-        topic: "Optimal Production Decisions",
-        type: "true-false",
-        prompt: "A profit-maximizing firm produces where marginal revenue equals marginal cost, provided price covers shutdown conditions when relevant.",
-        answer: true,
-        explanation: "The core profit-maximization condition is MR = MC, subject to staying open only when variable costs can be covered in the short run."
+        id: "optimal-production",
+        title: "Optimal Production Decisions",
+        description: "Using MR, MC, and shutdown rules to choose output.",
+        generators: [
+          () => {
+            const scenarios = [
+              {
+                prompt: "A firm is producing where marginal revenue is greater than marginal cost, and price is above average variable cost. What should it do to increase profit?",
+                answer: 0,
+                explanation: "If MR > MC, producing more raises profit as long as shutdown conditions are satisfied."
+              },
+              {
+                prompt: "A firm is producing where marginal revenue is less than marginal cost, and price is above average variable cost. What should it do to increase profit?",
+                answer: 1,
+                explanation: "If MR < MC, the firm should reduce output because the last units cost more than they add in revenue."
+              },
+              {
+                prompt: "A firm's price has fallen below average variable cost in the short run. What should it do?",
+                answer: 3,
+                explanation: "If price is below AVC, the firm should shut down in the short run because it cannot cover variable costs."
+              }
+            ];
+            const scenario = randomChoice(scenarios);
+            return {
+              type: "multiple-choice",
+              prompt: scenario.prompt,
+              options: [
+                "Increase output",
+                "Decrease output",
+                "Keep output unchanged",
+                "Shut down in the short run"
+              ],
+              answer: scenario.answer,
+              explanation: scenario.explanation
+            };
+          }
+        ]
       },
       {
-        id: "q16",
-        topic: "Short Run, Long Run, and Market Supply",
-        type: "multi-select",
-        prompt: "Which statements are true about the long run?",
-        options: [
-          "All inputs are variable",
-          "Firms can enter or exit the market",
-          "At least one input is fixed",
-          "Competitive firms may earn zero economic profit in equilibrium"
-        ],
-        answers: [0, 1, 3],
-        explanation: "In the long run all inputs are variable, entry and exit occur, and competitive equilibrium can drive economic profit to zero."
+        id: "short-run-long-run",
+        title: "Short Run, Long Run, and Market Supply",
+        description: "How firm behavior changes across time horizons.",
+        generators: [
+          () => ({
+            type: "multi-select",
+            prompt: "Which statements are true about the long run in a competitive market?",
+            options: [
+              "All inputs are variable.",
+              "Firms can enter or exit the market.",
+              "At least one input must remain fixed.",
+              "Economic profit may be driven to zero by entry and exit."
+            ],
+            answers: [0, 1, 3],
+            explanation: "In the long run all inputs are variable, firms can enter or exit, and competition can push economic profit to zero."
+          })
+        ]
       }
     ]
   },
   {
     id: "part-6",
     title: "Part VI: Market Power and Strategic Interactions",
-    description: "Imperfect competition, monopoly, product differentiation, and game theory.",
-    questions: [
+    description: "Monopoly, monopolistic competition, oligopoly, and game theory.",
+    topics: [
       {
-        id: "q17",
-        topic: "From Perfect Competition to Monopoly",
-        type: "multiple-choice",
-        prompt: "Compared with a perfectly competitive market, a monopolist typically produces:",
-        options: [
-          "More output at a lower price",
-          "Less output at a higher price",
-          "The same output at the same price",
-          "Less output at a lower price"
-        ],
-        answer: 1,
-        explanation: "Monopoly restricts output and raises price relative to the competitive benchmark, creating deadweight loss."
+        id: "perfect-competition-monopoly",
+        title: "From Perfect Competition to Monopoly",
+        description: "Comparing price, output, and welfare.",
+        generators: [
+          () => ({
+            type: "multiple-choice",
+            prompt: "Compared with a perfectly competitive market, a monopolist typically produces:",
+            options: [
+              "More output at a lower price",
+              "Less output at a higher price",
+              "The same output at the same price",
+              "Less output at a lower price"
+            ],
+            answer: 1,
+            explanation: "Monopolists restrict output and charge a higher price than the competitive benchmark."
+          })
+        ]
       },
       {
-        id: "q18",
-        topic: "Monopolies and Why They May Arise",
-        type: "multi-select",
-        prompt: "Which factors can create or protect a monopoly?",
-        options: [
-          "Control of a key resource",
-          "Government-granted patent protection",
-          "Strong economies of scale over the relevant market range",
-          "Perfectly free entry with no barriers"
-        ],
-        answers: [0, 1, 2],
-        explanation: "Monopolies can arise from resource control, legal barriers like patents, and natural monopoly conditions. Free entry works against monopoly power."
+        id: "monopolies-arise",
+        title: "Monopolies and Why They May Arise",
+        description: "Barriers to entry, natural monopoly, and legal protections.",
+        generators: [
+          () => ({
+            type: "multi-select",
+            prompt: "Which factors can create or protect a monopoly?",
+            options: [
+              "Control of a key resource",
+              "Government-granted patent protection",
+              "Strong economies of scale over the relevant market range",
+              "Perfectly free entry with no barriers"
+            ],
+            answers: [0, 1, 2],
+            explanation: "Control of resources, legal barriers, and natural monopoly conditions can support monopoly power. Free entry does the opposite."
+          })
+        ]
       },
       {
-        id: "q19",
-        topic: "Monopolistic Competition",
-        type: "true-false",
-        prompt: "In monopolistic competition, firms sell differentiated products and face downward-sloping demand curves.",
-        answer: true,
-        explanation: "Product differentiation gives each firm some market power, so its demand curve slopes downward."
+        id: "monopolistic-competition",
+        title: "Monopolistic Competition",
+        description: "Differentiation and downward-sloping demand.",
+        generators: [
+          () => {
+            const statements = [
+              {
+                prompt: "True or false: In monopolistic competition, firms sell differentiated products and face downward-sloping demand curves.",
+                answer: true,
+                explanation: "Product differentiation gives each firm some market power, so the firm's demand curve slopes downward."
+              },
+              {
+                prompt: "True or false: Firms in monopolistic competition sell identical products and are pure price takers.",
+                answer: false,
+                explanation: "That describes perfect competition, not monopolistic competition."
+              }
+            ];
+            return {
+              type: "true-false",
+              ...randomChoice(statements)
+            };
+          }
+        ]
       },
       {
-        id: "q20",
-        topic: "Oligopolies and Game Theory",
-        type: "multiple-choice",
-        prompt: "In the classic prisoner's dilemma, the outcome that is individually rational but collectively worse is:",
-        options: [
-          "Both players cooperate",
-          "Both players defect",
-          "One cooperates and the other defects forever",
-          "Both players randomize equally"
-        ],
-        answer: 1,
-        explanation: "Defection is the dominant strategy in the one-shot prisoner's dilemma, even though mutual cooperation would make both better off."
+        id: "oligopoly-game-theory",
+        title: "Oligopolies and Game Theory",
+        description: "Strategic interaction, dominant strategies, and Nash equilibrium.",
+        generators: [
+          () => {
+            const actionA = randomChoice([
+              ["keep prices high", "cut prices"],
+              ["advertise lightly", "advertise heavily"],
+              ["cooperate", "defect"]
+            ]);
+            return {
+              type: "multiple-choice",
+              prompt: `Two firms face a one-shot prisoner's dilemma. Each can either ${actionA[0]} or ${actionA[1]}. What outcome is most likely to be the Nash equilibrium?`,
+              options: [
+                `Both firms ${actionA[0]}`,
+                `Both firms ${actionA[1]}`,
+                `One firm ${actionA[0]} and one firm ${actionA[1]} forever`,
+                "No equilibrium exists"
+              ],
+              answer: 1,
+              explanation: `In the standard one-shot prisoner's dilemma, the dominant strategy is the more aggressive action, so both firms ${actionA[1]}.`
+            };
+          }
+        ]
       }
     ]
   }
 ];
 
+const flatTopics = practiceParts.flatMap(part =>
+  part.topics.map(topic => ({
+    ...topic,
+    partId: part.id,
+    partTitle: part.title
+  }))
+);
+
+const topicById = Object.fromEntries(flatTopics.map(topic => [topic.id, topic]));
+
 const partNav = document.getElementById("partNav");
 const partsContainer = document.getElementById("partsContainer");
-const partFilter = document.getElementById("partFilter");
-const showAllBtn = document.getElementById("showAllBtn");
+const topicSelect = document.getElementById("topicSelect");
+const topicCountSelect = document.getElementById("topicCountSelect");
+const mixedCountSelect = document.getElementById("mixedCountSelect");
+const generateTopicBtn = document.getElementById("generateTopicBtn");
+const generateMixedBtn = document.getElementById("generateMixedBtn");
+const generateMixedHeroBtn = document.getElementById("generateMixedHeroBtn");
+const clearWorkspaceBtn = document.getElementById("clearWorkspaceBtn");
 const questionCount = document.getElementById("questionCount");
 const topicCount = document.getElementById("topicCount");
 const answeredCount = document.getElementById("answeredCount");
 const correctCount = document.getElementById("correctCount");
 const accuracyRate = document.getElementById("accuracyRate");
+const workspaceTitle = document.getElementById("workspaceTitle");
+const workspaceSubtitle = document.getElementById("workspaceSubtitle");
+const questionWorkspace = document.getElementById("questionWorkspace");
 const questionTemplate = document.getElementById("questionTemplate");
 
-const results = {};
-let currentFilter = "all";
+let questionSerial = 0;
+let currentResults = {};
 
-function countTopics() {
-  return new Set(practiceParts.flatMap(part => part.questions.map(question => question.topic))).size;
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomChoice(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function formatNumber(value) {
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+function normalizeAnswer(value) {
+  return value.toLowerCase().replace(/\$/g, "").replace(/,/g, "").replace(/\s+/g, "");
+}
+
+function buildQuestion(topic, generated) {
+  questionSerial += 1;
+  return {
+    ...generated,
+    id: `generated-${questionSerial}`,
+    topicId: topic.id,
+    topic: topic.title,
+    partTitle: topic.partTitle
+  };
+}
+
+function generateQuestionFromTopic(topicId) {
+  const topic = topicById[topicId];
+  const generator = randomChoice(topic.generators);
+  return buildQuestion(topic, generator());
+}
+
+function generateTopicSet(topicId, count) {
+  return Array.from({ length: count }, () => generateQuestionFromTopic(topicId));
+}
+
+function generateMixedSet(count) {
+  const topics = shuffle(flatTopics);
+  const selectedTopics = [];
+
+  while (selectedTopics.length < count) {
+    if (topics.length === 0) {
+      topics.push(...shuffle(flatTopics));
+    }
+    selectedTopics.push(topics.pop());
+  }
+
+  return selectedTopics.map(topic => buildQuestion(topic, randomChoice(topic.generators)()));
 }
 
 function renderNav() {
@@ -306,51 +691,21 @@ function renderNav() {
     link.className = "part-link";
     link.href = `#${part.id}`;
     link.textContent = part.title;
-    link.addEventListener("click", event => {
-      event.preventDefault();
-      currentFilter = part.id;
-      renderParts();
-      updateActiveLinks();
-      partFilter.value = part.id;
-      const target = document.getElementById(part.id);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
     partNav.appendChild(link);
   });
 }
 
-function renderFilter() {
-  partFilter.innerHTML = "";
-  const allOption = new Option("All parts", "all");
-  partFilter.appendChild(allOption);
-  practiceParts.forEach(part => {
-    partFilter.appendChild(new Option(part.title, part.id));
-  });
-
-  partFilter.addEventListener("change", event => {
-    currentFilter = event.target.value;
-    renderParts();
-    updateActiveLinks();
+function renderTopicSelect() {
+  topicSelect.innerHTML = "";
+  flatTopics.forEach(topic => {
+    topicSelect.appendChild(new Option(`${topic.partTitle} - ${topic.title}`, topic.id));
   });
 }
 
-function updateActiveLinks() {
-  const links = partNav.querySelectorAll(".part-link");
-  links.forEach((link, index) => {
-    const isActive = practiceParts[index].id === currentFilter;
-    link.classList.toggle("is-active", isActive);
-  });
-}
-
-function renderParts() {
+function renderPartSections() {
   partsContainer.innerHTML = "";
-  const visibleParts = currentFilter === "all"
-    ? practiceParts
-    : practiceParts.filter(part => part.id === currentFilter);
 
-  visibleParts.forEach(part => {
+  practiceParts.forEach(part => {
     const section = document.createElement("section");
     section.className = "part-section";
     section.id = part.id;
@@ -361,18 +716,73 @@ function renderParts() {
     section.appendChild(header);
 
     const grid = document.createElement("div");
-    grid.className = "questions-grid";
+    grid.className = "topic-grid";
 
-    part.questions.forEach(question => {
-      grid.appendChild(renderQuestion(question));
+    part.topics.forEach(topic => {
+      const card = document.createElement("article");
+      card.className = "topic-card";
+      card.innerHTML = `
+        <div class="topic-card__meta">${part.title}</div>
+        <h3>${topic.title}</h3>
+        <p>${topic.description}</p>
+        <div class="topic-card__actions">
+          <button class="button button--secondary" type="button" data-topic-id="${topic.id}" data-count="1">1 question</button>
+          <button class="button button--ghost" type="button" data-topic-id="${topic.id}" data-count="3">3 questions</button>
+        </div>
+      `;
+      grid.appendChild(card);
     });
 
     section.appendChild(grid);
     partsContainer.appendChild(section);
   });
+
+  partsContainer.querySelectorAll("[data-topic-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      const topicId = button.dataset.topicId;
+      const count = Number(button.dataset.count);
+      topicSelect.value = topicId;
+      topicCountSelect.value = String(count);
+      renderSession(
+        generateTopicSet(topicId, count),
+        `${topicById[topicId].title} practice`,
+        count === 1
+          ? "Fresh question generated from this topic."
+          : `Fresh ${count}-question set generated from this topic.`
+      );
+    });
+  });
 }
 
-function renderQuestion(question) {
+function renderSession(questions, title, subtitle) {
+  currentResults = {};
+  updateProgress();
+  workspaceTitle.textContent = title;
+  workspaceSubtitle.textContent = subtitle;
+  questionWorkspace.innerHTML = "";
+
+  if (questions.length === 0) {
+    renderEmptyState();
+    return;
+  }
+
+  questions.forEach((question, index) => {
+    questionWorkspace.appendChild(renderQuestion(question, index + 1));
+  });
+
+  document.getElementById("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderEmptyState() {
+  questionWorkspace.innerHTML = `
+    <div class="empty-state">
+      <h3>No questions generated yet</h3>
+      <p>Use the topic or mixed controls above, or click a topic card below.</p>
+    </div>
+  `;
+}
+
+function renderQuestion(question, number) {
   const fragment = questionTemplate.content.cloneNode(true);
   const card = fragment.querySelector(".question-card");
   const topic = fragment.querySelector(".question-card__topic");
@@ -384,8 +794,8 @@ function renderQuestion(question) {
   const feedback = fragment.querySelector(".feedback");
 
   card.dataset.questionId = question.id;
-  topic.textContent = question.topic;
-  prompt.textContent = question.prompt;
+  topic.textContent = `${question.partTitle} - ${question.topic}`;
+  prompt.textContent = `Question ${number}: ${question.prompt}`;
   type.textContent = formatType(question.type);
 
   if (question.type === "multiple-choice") {
@@ -414,7 +824,7 @@ function renderQuestion(question) {
       return;
     }
 
-    results[question.id] = evaluation.correct;
+    currentResults[question.id] = evaluation.correct;
     setFeedback(
       feedback,
       `${evaluation.correct ? "Correct." : "Not quite."} ${question.explanation}`,
@@ -425,7 +835,7 @@ function renderQuestion(question) {
 
   resetBtn.addEventListener("click", () => {
     resetQuestion(question, body, feedback);
-    delete results[question.id];
+    delete currentResults[question.id];
     updateProgress();
   });
 
@@ -482,11 +892,11 @@ function evaluateQuestion(question, body) {
 
   if (question.type === "short-answer") {
     const input = body.querySelector(`input[name="${question.id}"]`);
-    const normalized = input.value.trim().toLowerCase();
+    const normalized = normalizeAnswer(input.value.trim());
     if (!normalized) {
       return { answered: false, correct: false };
     }
-    const correct = question.answers.some(answer => answer.toLowerCase() === normalized);
+    const correct = question.answers.some(answer => normalizeAnswer(answer) === normalized);
     return { answered: true, correct };
   }
 
@@ -513,8 +923,8 @@ function resetQuestion(question, body, feedback) {
 }
 
 function updateProgress() {
-  const totalAnswered = Object.keys(results).length;
-  const totalCorrect = Object.values(results).filter(Boolean).length;
+  const totalAnswered = Object.keys(currentResults).length;
+  const totalCorrect = Object.values(currentResults).filter(Boolean).length;
   const accuracy = totalAnswered === 0 ? 0 : Math.round((totalCorrect / totalAnswered) * 100);
 
   answeredCount.textContent = String(totalAnswered);
@@ -530,19 +940,51 @@ function formatType(type) {
 }
 
 function init() {
-  questionCount.textContent = String(practiceParts.reduce((sum, part) => sum + part.questions.length, 0));
-  topicCount.textContent = String(countTopics());
-  renderNav();
-  renderFilter();
-  renderParts();
-  updateProgress();
-  updateActiveLinks();
+  questionCount.textContent = "Unlimited";
+  topicCount.textContent = String(flatTopics.length);
 
-  showAllBtn.addEventListener("click", () => {
-    currentFilter = "all";
-    partFilter.value = "all";
-    renderParts();
-    updateActiveLinks();
+  renderNav();
+  renderTopicSelect();
+  renderPartSections();
+  renderEmptyState();
+  updateProgress();
+
+  generateTopicBtn.addEventListener("click", () => {
+    const topicId = topicSelect.value;
+    const count = Number(topicCountSelect.value);
+    renderSession(
+      generateTopicSet(topicId, count),
+      `${topicById[topicId].title} practice`,
+      count === 1
+        ? "Fresh question generated from this topic."
+        : `Fresh ${count}-question set generated from this topic.`
+    );
+  });
+
+  generateMixedBtn.addEventListener("click", () => {
+    const count = Number(mixedCountSelect.value);
+    renderSession(
+      generateMixedSet(count),
+      "Mixed all-topic review",
+      `Fresh ${count}-question set generated across the course.`
+    );
+  });
+
+  generateMixedHeroBtn.addEventListener("click", () => {
+    const count = Number(mixedCountSelect.value);
+    renderSession(
+      generateMixedSet(count),
+      "Mixed all-topic review",
+      `Fresh ${count}-question set generated across the course.`
+    );
+  });
+
+  clearWorkspaceBtn.addEventListener("click", () => {
+    currentResults = {};
+    updateProgress();
+    workspaceTitle.textContent = "Question workspace";
+    workspaceSubtitle.textContent = "Choose a topic or generate a mixed set to begin.";
+    renderEmptyState();
   });
 }
 
