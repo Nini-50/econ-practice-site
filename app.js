@@ -604,11 +604,37 @@ const QUESTION_TYPES = [
   { id: "short-answer", label: "Short answer" }
 ];
 
+function inferQuestionType(question) {
+  if (question.type) {
+    return question.type;
+  }
+  if (Array.isArray(question.answers) && Array.isArray(question.options)) {
+    return "multi-select";
+  }
+  if (typeof question.answer === "boolean") {
+    return "true-false";
+  }
+  if (Array.isArray(question.options)) {
+    return "multiple-choice";
+  }
+  if (Array.isArray(question.answers)) {
+    return "short-answer";
+  }
+  return "multiple-choice";
+}
+
+function normalizeGeneratedQuestion(question) {
+  return {
+    ...question,
+    type: inferQuestionType(question)
+  };
+}
+
 const flatTopics = practiceParts.flatMap(part =>
   part.topics.map(topic => {
     const generatorPool = topic.generators.map(create => ({
       create,
-      type: create().type
+      type: inferQuestionType(create())
     }));
 
     return {
@@ -681,8 +707,9 @@ function clampQuestionCount(value) {
 
 function buildQuestion(topic, generated) {
   questionSerial += 1;
+  const normalizedQuestion = normalizeGeneratedQuestion(generated);
   return {
-    ...generated,
+    ...normalizedQuestion,
     id: `generated-${questionSerial}`,
     topicId: topic.id,
     topic: topic.title,
