@@ -604,6 +604,10 @@ const QUESTION_TYPES = [
   { id: "short-answer", label: "Short answer" }
 ];
 
+const STORAGE_KEYS = {
+  accounts: "econPracticeAccounts.v1"
+};
+
 function inferQuestionType(question) {
   if (question.type) {
     return question.type;
@@ -649,6 +653,16 @@ const flatTopics = practiceParts.flatMap(part =>
 
 const topicById = Object.fromEntries(flatTopics.map(topic => [topic.id, topic]));
 
+const authOverlay = document.getElementById("authOverlay");
+const authUsername = document.getElementById("authUsername");
+const authPassword = document.getElementById("authPassword");
+const authConfirmPassword = document.getElementById("authConfirmPassword");
+const authFeedback = document.getElementById("authFeedback");
+const loginBtn = document.getElementById("loginBtn");
+const createAccountBtn = document.getElementById("createAccountBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const accountName = document.getElementById("accountName");
+const topicProgressList = document.getElementById("topicProgressList");
 const partNav = document.getElementById("partNav");
 const partsContainer = document.getElementById("partsContainer");
 const typeFilters = document.getElementById("typeFilters");
@@ -669,16 +683,14 @@ const clearTopicsBtn = document.getElementById("clearTopicsBtn");
 const clearWorkspaceBtn = document.getElementById("clearWorkspaceBtn");
 const questionCount = document.getElementById("questionCount");
 const topicCount = document.getElementById("topicCount");
-const answeredCount = document.getElementById("answeredCount");
-const correctCount = document.getElementById("correctCount");
-const accuracyRate = document.getElementById("accuracyRate");
 const workspaceTitle = document.getElementById("workspaceTitle");
 const workspaceSubtitle = document.getElementById("workspaceSubtitle");
 const questionWorkspace = document.getElementById("questionWorkspace");
 const questionTemplate = document.getElementById("questionTemplate");
 
 let questionSerial = 0;
-let currentResults = {};
+let currentUsernameKey = null;
+let currentUser = null;
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -703,6 +715,214 @@ function clampQuestionCount(value) {
     return 10;
   }
   return Math.min(30, Math.max(1, Math.round(parsed)));
+}
+
+function normalizeUsername(username) {
+  return username.trim().toLowerCase();
+}
+
+function hashPassword(username, password) {
+  const input = `${normalizeUsername(username)}::${password}`;
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) + input.charCodeAt(i);
+  }
+  return String(hash >>> 0);
+}
+
+function loadAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.accounts) || "{}");
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveAccounts(accounts) {
+  localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(accounts));
+}
+
+function createEmptyTopicProgress() {
+  return { attempted: 0, correct: 0 };
+}
+
+function ensureTopicProgressShape(user) {
+  if (!user.progress) {
+    user.progress = {};
+  }
+
+  flatTopics.forEach(topic => {
+    if (!user.progress[topic.id]) {
+      user.progress[topic.id] = createEmptyTopicProgress();
+    }
+  });
+}
+
+function setAuthFeedback(message, isError = true) {
+  authFeedback.textContent = message;
+  authFeedback.style.color = isError ? "var(--warning)" : "var(--success)";
+}
+
+function persistCurrentUser() {
+  if (!currentUser || !currentUsernameKey) {
+    return;
+  }
+  const accounts = loadAccounts();
+  accounts[currentUsernameKey] = currentUser;
+  saveAccounts(accounts);
+}
+
+function setAuthenticatedState(isAuthenticated) {
+  authOverlay.classList.toggle("is-hidden", isAuthenticated);
+  document.body.classList.toggle("auth-required", !isAuthenticated);
+  logoutBtn.hidden = !isAuthenticated;
+}
+
+function renderAccountPanel() {
+  if (currentUser) {
+    accountName.textContent = currentUser.username;
+  } else {
+    accountName.textContent = "Not logged in";
+  }
+}
+
+function renderTopicProgress() {
+  topicProgressList.innerHTML = "";
+
+  if (!currentUser) {
+    topicProgressList.innerHTML = `
+      <div class="empty-state">
+        <h3>No user logged in</h3>
+        <p>Create or log in to a browser-local account to save topic accuracy.</p>
+      </div>
+    `;
+    return;
+  }
+
+  ensureTopicProgressShape(currentUser);
+
+  flatTopics.forEach(topic => {
+    const stats = currentUser.progress[topic.id];
+    const accuracy = stats.attempted === 0 ? 0 : Math.round((stats.correct / stats.attempted) * 100);
+
+    const item = document.createElement("article");
+    item.className = "progress-item";
+    item.innerHTML = `
+      <div class="progress-item__top">
+        <div>
+          <p class="progress-item__title">${topic.title}</p>
+          <div class="progress-item__meta">${stats.attempted} attempt${stats.attempted === 1 ? "" : "s"} • ${stats.correct} correct</div>
+        </div>
+        <div class="progress-item__score">${accuracy}%</div>
+      </div>
+      <div class="progress-bar"><div class="progress-bar__fill" style="width: ${accuracy}%;"></div></div>
+    `;
+    topicProgressList.appendChild(item);
+  });
+}
+
+function applyLoggedInUser(usernameKey, user) {
+  currentUsernameKey = usernameKey;
+  currentUser = user;
+  ensureTopicProgressShape(currentUser);
+  persistCurrentUser();
+  setAuthenticatedState(true);
+  renderAccountPanel();
+  renderTopicProgress();
+  authPassword.value = "";
+  authConfirmPassword.value = "";
+  setAuthFeedback("", false);
+}
+
+function createAccount() {
+  const username = authUsername.value.trim();
+  const password = authPassword.value;
+  const confirmPassword = authConfirmPassword.value;
+
+  if (!username) {
+    setAuthFeedback("Enter a username.");
+    return;
+  }
+  if (!password) {
+    setAuthFeedback("Enter a password.");
+    return;
+  }
+  if (password.length < 4) {
+    setAuthFeedback("Use a password with at least 4 characters.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    setAuthFeedback("The password confirmation does not match.");
+    return;
+  }
+
+  const usernameKey = normalizeUsername(username);
+  const accounts = loadAccounts();
+  if (accounts[usernameKey]) {
+    setAuthFeedback("That username already exists in this browser.");
+    return;
+  }
+
+  const user = {
+    username,
+    passwordHash: hashPassword(usernameKey, password),
+    progress: {}
+  };
+
+  accounts[usernameKey] = user;
+  saveAccounts(accounts);
+  applyLoggedInUser(usernameKey, user);
+}
+
+function login() {
+  const username = authUsername.value.trim();
+  const password = authPassword.value;
+
+  if (!username || !password) {
+    setAuthFeedback("Enter both username and password.");
+    return;
+  }
+
+  const usernameKey = normalizeUsername(username);
+  const accounts = loadAccounts();
+  const user = accounts[usernameKey];
+
+  if (!user || user.passwordHash !== hashPassword(usernameKey, password)) {
+    setAuthFeedback("Incorrect username or password for this browser.");
+    return;
+  }
+
+  applyLoggedInUser(usernameKey, user);
+}
+
+function logout() {
+  currentUsernameKey = null;
+  currentUser = null;
+  setAuthenticatedState(false);
+  renderAccountPanel();
+  renderTopicProgress();
+  authPassword.value = "";
+  authConfirmPassword.value = "";
+  workspaceTitle.textContent = "Question workspace";
+  workspaceSubtitle.textContent = "Choose a topic or generate a mixed set to begin.";
+  renderEmptyState("Log in to continue", "Create or log in to your browser-local account to generate and save progress.");
+}
+
+function recordProgress(question, isCorrect, card) {
+  if (!currentUser || card.dataset.scored === "true") {
+    return;
+  }
+
+  ensureTopicProgressShape(currentUser);
+  const topicStats = currentUser.progress[question.topicId] || createEmptyTopicProgress();
+  topicStats.attempted += 1;
+  if (isCorrect) {
+    topicStats.correct += 1;
+  }
+  currentUser.progress[question.topicId] = topicStats;
+  card.dataset.scored = "true";
+  persistCurrentUser();
+  renderTopicProgress();
 }
 
 function buildQuestion(topic, generated) {
@@ -980,8 +1200,6 @@ function renderPartSections() {
 }
 
 function renderSession(questions, title, subtitle) {
-  currentResults = {};
-  updateProgress();
   workspaceTitle.textContent = title;
   workspaceSubtitle.textContent = subtitle;
   questionWorkspace.innerHTML = "";
@@ -1024,6 +1242,7 @@ function renderQuestion(question, number) {
   const feedback = fragment.querySelector(".feedback");
 
   card.dataset.questionId = question.id;
+  card.dataset.scored = "false";
   topic.textContent = `${question.partTitle} - ${question.topic}`;
   prompt.textContent = `Question ${number}: ${question.prompt}`;
   type.textContent = formatType(question.type);
@@ -1067,19 +1286,16 @@ function renderQuestion(question, number) {
       return;
     }
 
-    currentResults[question.id] = evaluation.correct;
+    recordProgress(question, evaluation.correct, card);
     setFeedback(
       feedback,
       `${evaluation.correct ? "Correct." : "Not quite."} ${question.explanation}`,
       evaluation.correct
     );
-    updateProgress();
   });
 
   resetBtn.addEventListener("click", () => {
     resetQuestion(question, body, hint, feedback, hintBtn);
-    delete currentResults[question.id];
-    updateProgress();
   });
 
   return fragment;
@@ -1212,18 +1428,12 @@ function resetQuestion(question, body, hint, feedback, hintBtn) {
   hint.className = "hint";
   hint.textContent = "";
   hintBtn.textContent = "Show hint";
+  const questionCard = hintBtn.closest(".question-card");
+  if (questionCard) {
+    questionCard.dataset.scored = "false";
+  }
   feedback.className = "feedback";
   feedback.textContent = "";
-}
-
-function updateProgress() {
-  const totalAnswered = Object.keys(currentResults).length;
-  const totalCorrect = Object.values(currentResults).filter(Boolean).length;
-  const accuracy = totalAnswered === 0 ? 0 : Math.round((totalCorrect / totalAnswered) * 100);
-
-  answeredCount.textContent = String(totalAnswered);
-  correctCount.textContent = String(totalCorrect);
-  accuracyRate.textContent = `${accuracy}%`;
 }
 
 function formatType(type) {
@@ -1289,7 +1499,13 @@ function init() {
   renderTopicSelect();
   renderPartSections();
   renderEmptyState();
-  updateProgress();
+  renderAccountPanel();
+  renderTopicProgress();
+  setAuthenticatedState(false);
+
+  loginBtn.addEventListener("click", login);
+  createAccountBtn.addEventListener("click", createAccount);
+  logoutBtn.addEventListener("click", logout);
 
   generateTopicBtn.addEventListener("click", () => {
     const topicId = topicSelect.value;
@@ -1340,8 +1556,6 @@ function init() {
   });
 
   clearWorkspaceBtn.addEventListener("click", () => {
-    currentResults = {};
-    updateProgress();
     workspaceTitle.textContent = "Question workspace";
     workspaceSubtitle.textContent = "Choose a topic or generate a mixed set to begin.";
     renderEmptyState();

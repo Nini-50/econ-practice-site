@@ -28,6 +28,10 @@ body {
   color: var(--text);
 }
 
+body.auth-required {
+  overflow: hidden;
+}
+
 a {
   color: inherit;
 }
@@ -52,6 +56,7 @@ select {
 .sidebar__panel,
 .toolbar,
 .generator-card,
+.auth-card,
 .workspace,
 .part-section,
 .question-card,
@@ -64,6 +69,54 @@ select {
 
 .hero__content {
   padding: 32px;
+}
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.auth-overlay.is-hidden {
+  display: none;
+}
+
+.auth-card {
+  width: min(100%, 480px);
+  padding: 28px;
+}
+
+.auth-card h2 {
+  margin: 0 0 8px;
+}
+
+.auth-card__text {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-feedback {
+  min-height: 20px;
+  margin: 0;
+  color: var(--warning);
 }
 
 .eyebrow {
@@ -166,14 +219,20 @@ select {
   outline: none;
 }
 
-.progress-card p,
-.type-list {
-  margin: 0;
+.account-name {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
-.progress-card {
-  display: grid;
-  gap: 10px;
+.sidebar-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.type-list {
+  margin: 0;
 }
 
 .type-list {
@@ -365,6 +424,57 @@ input[type="text"] {
 .empty-state p {
   margin: 0;
   color: var(--muted);
+}
+
+.progress-list {
+  display: grid;
+  gap: 10px;
+}
+
+.progress-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfcff;
+  display: grid;
+  gap: 8px;
+}
+
+.progress-item__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.progress-item__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.progress-item__meta {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.progress-item__score {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #dbe4ff;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #7c3aed);
 }
 
 .part-section {
