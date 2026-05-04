@@ -12,34 +12,34 @@ const practiceParts = [
           () => {
             const scenarios = [
               {
-                prompt: "A university has enough funding to build either a new dorm or a new library wing, but not both. This situation best illustrates:",
+                prompt: "A university has enough funding to build either a new dorm or a new library wing, but not both. Which economic idea is most directly illustrated here?",
                 options: [
                   "Scarcity and tradeoffs",
-                  "A positive externality",
-                  "Perfectly elastic demand",
-                  "A natural monopoly"
+                  "A positive externality from education",
+                  "Perfect competition in higher education",
+                  "A decrease in marginal cost"
                 ],
                 answer: 0,
                 explanation: "Scarcity means resources are limited, so choosing one option requires giving up another."
               },
               {
-                prompt: "A student studies one more hour because the expected grade improvement is greater than the cost in lost free time. This is an example of:",
+                prompt: "A student studies one more hour because the expected grade improvement is greater than the cost in lost free time. This is the clearest example of:",
                 options: [
                   "Marginal decision-making",
+                  "Average cost pricing",
                   "Public good provision",
-                  "Price discrimination",
                   "A sunk cost fallacy"
                 ],
                 answer: 0,
                 explanation: "Economics emphasizes marginal analysis: compare the additional benefit of one more unit with its additional cost."
               },
               {
-                prompt: "Which statement best matches a core economic principle?",
+                prompt: "Which statement best matches a core economic principle without overstating what economics can predict?",
                 options: [
                   "Choices are costless when people act rationally.",
                   "People respond to incentives and face tradeoffs.",
-                  "Growth eliminates scarcity entirely.",
-                  "Markets always produce equal outcomes."
+                  "Growth eliminates scarcity in the long run.",
+                  "Markets always produce efficient and fair outcomes."
                 ],
                 answer: 1,
                 explanation: "People respond to incentives and make choices under scarcity, so tradeoffs are central to economics."
@@ -57,12 +57,13 @@ const practiceParts = [
           () => {
             const wage = randomChoice([15, 18, 20, 24, 30]);
             const hours = randomChoice([2, 3, 4, 5]);
-            const cost = wage * hours;
+            const outOfPocket = randomChoice([8, 12, 15, 20]);
+            const cost = wage * hours + outOfPocket;
             return {
               type: "short-answer",
-              prompt: `A student can work for $${wage} per hour for ${hours} hours or spend that time studying instead. If the student studies, what is the opportunity cost in dollars?`,
+              prompt: `A student can work for $${wage} per hour for ${hours} hours or attend a review session instead. Attending the session also requires $${outOfPocket} for transportation and materials. If the student attends the session, what is the total opportunity cost in dollars?`,
               answers: [String(cost), `$${cost}`],
-              explanation: `The opportunity cost is the value of the next-best alternative forgone: $${cost} in lost wages.`
+              explanation: `Opportunity cost includes both the forgone wages and the direct cost of the chosen option: $${wage * hours} + $${outOfPocket} = $${cost}.`
             };
           }
         ]
@@ -82,10 +83,10 @@ const practiceParts = [
             let explanation;
 
             do {
-              aBikes = randomInt(4, 12);
-              aShirts = randomInt(8, 24);
-              bBikes = randomInt(4, 12);
-              bShirts = randomInt(8, 24);
+              aBikes = randomInt(4, 10);
+              aShirts = randomInt(10, 24);
+              bBikes = randomInt(4, 10);
+              bShirts = randomInt(10, 24);
               askGood = randomChoice(["bikes", "shirts"]);
 
               const aBikeCost = aShirts / aBikes;
@@ -129,19 +130,19 @@ const practiceParts = [
             const scenarios = [
               {
                 cause: "demand increases while supply stays the same",
-                statement: "equilibrium price rises",
+                statement: "equilibrium price rises and equilibrium quantity rises",
                 truth: true,
                 explanation: "When demand rises with supply unchanged, both equilibrium price and quantity rise."
               },
               {
                 cause: "supply decreases while demand stays the same",
-                statement: "equilibrium quantity rises",
+                statement: "equilibrium price falls and equilibrium quantity rises",
                 truth: false,
                 explanation: "When supply decreases with demand unchanged, equilibrium price rises and equilibrium quantity falls."
               },
               {
                 cause: "demand decreases while supply stays the same",
-                statement: "equilibrium price falls",
+                statement: "equilibrium price falls and equilibrium quantity falls",
                 truth: true,
                 explanation: "A leftward shift in demand lowers both equilibrium price and quantity."
               }
@@ -176,8 +177,13 @@ const practiceParts = [
             };
             return {
               type: "multiple-choice",
-              prompt: `A ${priceChange}% increase in price causes quantity demanded to fall by ${quantityChange}%. Demand is:`,
-              options: ["Perfectly inelastic", "Inelastic", "Unit elastic", "Elastic"],
+              prompt: `A ${priceChange}% increase in price causes quantity demanded to fall by ${quantityChange}%. Which conclusion is best supported?`,
+              options: [
+                "Demand is perfectly inelastic, so total revenue must rise.",
+                "Demand is inelastic because quantity changes less than price.",
+                "Demand is unit elastic because total revenue is unchanged by definition.",
+                "Demand is elastic because quantity changes proportionally more than price."
+              ],
               answer: answerMap[type.label],
               explanation: `Elasticity is ${quantityChange}% / ${priceChange}% = ${formatNumber(quantityChange / priceChange)} in absolute value, so demand is ${type.label.toLowerCase()}.`
             };
@@ -195,7 +201,7 @@ const practiceParts = [
             options: [
               "Total surplus is maximized.",
               "There is no deadweight loss from underproduction or overproduction.",
-              "Income is distributed equally across all households.",
+              "The equilibrium necessarily produces an equal distribution of welfare across consumers.",
               "Trades occur up to the point where marginal benefit equals marginal cost."
             ],
             answers: [0, 1, 3],
@@ -218,24 +224,24 @@ const practiceParts = [
           () => {
             const scenarios = [
               {
-                prompt: "A binding price ceiling is set below the equilibrium price. What is the most direct result?",
-                options: ["A surplus", "A shortage", "No change", "Higher equilibrium price"],
+                prompt: "A binding price ceiling is set below the equilibrium price. What is the most direct market result?",
+                options: ["A surplus", "A shortage", "No change because markets clear automatically", "Higher equilibrium quantity supplied"],
                 answer: 1,
                 explanation: "A price ceiling below equilibrium increases quantity demanded and reduces quantity supplied, causing a shortage."
               },
               {
-                prompt: "A binding price floor is set above the equilibrium price. What is the most direct result?",
-                options: ["A shortage", "A surplus", "No change", "Lower producer revenue by definition"],
+                prompt: "A binding price floor is set above the equilibrium price. What is the most direct market result?",
+                options: ["A shortage", "A surplus", "No change because the price is only a recommendation", "A guaranteed increase in total surplus"],
                 answer: 1,
                 explanation: "A price floor above equilibrium raises price, reducing quantity demanded and increasing quantity supplied, creating a surplus."
               },
               {
-                prompt: "A per-unit tax is placed on sellers in a competitive market. Which statement is true?",
+                prompt: "A per-unit tax is placed on sellers in a competitive market. Which statement is always true?",
                 options: [
                   "The tax creates a wedge between the price buyers pay and sellers receive.",
-                  "The market always becomes more efficient.",
-                  "Quantity traded must increase.",
-                  "Producers can never pass any of the tax to consumers."
+                  "The market always becomes more efficient because external costs are corrected.",
+                  "Quantity traded must increase if demand is inelastic.",
+                  "Sellers always bear the entire tax burden."
                 ],
                 answer: 0,
                 explanation: "A tax drives a wedge between buyer and seller prices and typically reduces quantity traded."
@@ -253,12 +259,12 @@ const practiceParts = [
           () => {
             const statements = [
               {
-                prompt: "True or false: Transfer programs can reduce disposable-income inequality even if market incomes do not change.",
+                prompt: "True or false: Transfer programs can reduce disposable-income inequality even when the underlying market distribution of wages is unchanged.",
                 answer: true,
                 explanation: "Transfers affect after-tax, after-transfer income, which can reduce measured inequality."
               },
               {
-                prompt: "True or false: A more progressive tax-and-transfer system usually has no effect on after-tax income inequality.",
+                prompt: "True or false: A more progressive tax-and-transfer system usually has no effect on after-tax income inequality because it only changes government revenue.",
                 answer: false,
                 explanation: "Progressive taxes and transfers are designed partly to compress the distribution of disposable income."
               }
@@ -278,8 +284,8 @@ const practiceParts = [
           () => {
             const sets = [
               ["National defense", "A sandwich", "A haircut", "A movie rental"],
-              ["A city siren system", "A private gym membership", "A coffee", "A textbook"],
-              ["Street lighting", "A laptop", "A concert ticket", "A taxi ride"]
+              ["A city siren system", "A toll road at rush hour", "A coffee", "A textbook"],
+              ["Street lighting", "A subscription streaming service", "A concert ticket", "A taxi ride"]
             ];
             const options = randomChoice(sets);
             return {
@@ -302,7 +308,7 @@ const practiceParts = [
             if (kind === "negative") {
               return {
                 type: "multi-select",
-                prompt: "A factory creates a negative externality through pollution. Which policies could help move the market toward the socially efficient outcome?",
+                prompt: "A factory creates a negative externality through pollution. Which policies could help move output closer to the socially efficient level?",
                 options: [
                   "A Pigouvian tax on emissions",
                   "Tradable pollution permits",
@@ -315,7 +321,7 @@ const practiceParts = [
             }
             return {
               type: "multi-select",
-              prompt: "Vaccination creates a positive externality. Which policies could encourage a more socially efficient level of consumption?",
+              prompt: "Vaccination creates a positive externality. Which policies could encourage consumption closer to the socially efficient level?",
               options: [
                 "A subsidy for vaccination",
                 "Public information campaigns",
@@ -343,7 +349,7 @@ const practiceParts = [
           () => {
             const scenarios = [
               {
-                prompt: "If a consumer's income doubles and all prices stay the same, the budget line:",
+                prompt: "If a consumer's income doubles and the prices of both goods stay the same, the budget line:",
                 options: [
                   "Shifts inward",
                   "Rotates inward",
@@ -354,7 +360,7 @@ const practiceParts = [
                 explanation: "Higher income with unchanged prices shifts the budget line outward in a parallel way."
               },
               {
-                prompt: "If the price of good X rises while income and the price of good Y stay the same, the budget line:",
+                prompt: "If the price of good X rises while income and the price of good Y stay the same, the budget line for goods X and Y:",
                 options: [
                   "Rotates inward around the Y-intercept",
                   "Shifts outward in parallel",
@@ -375,14 +381,14 @@ const practiceParts = [
         description: "Choosing bundles that maximize utility subject to a budget.",
         generators: [
           () => {
-            const ratio = randomChoice([2, 3, 4, 5, 6]);
+            const ratio = randomChoice([2, 3, 4, 5, 6, 7]);
             const px = randomChoice([2, 3, 4, 5]);
             const py = randomChoice([1, 2, 3, 4, 5]);
             const mux = ratio * px;
             const muy = ratio * py;
             return {
               type: "short-answer",
-              prompt: `At an interior optimum, a consumer chooses a bundle where MUx/Px = MUy/Py. If MUx = ${mux}, Px = ${px}, and Py = ${py}, what must MUy equal?`,
+              prompt: `At an interior optimum, a consumer chooses a bundle where MUx/Px = MUy/Py. If MUx = ${mux}, Px = ${px}, and Py = ${py}, what must MUy equal for the consumer to satisfy the equal-marginal-utility-per-dollar rule?`,
               answers: [String(muy)],
               explanation: `MUx/Px = ${mux}/${px} = ${ratio}, so MUy must satisfy MUy/${py} = ${ratio}. Therefore MUy = ${muy}.`
             };
@@ -395,12 +401,12 @@ const practiceParts = [
         description: "Expected value, certainty, and risk preferences.",
         generators: [
           () => {
-            const certain = randomChoice([40, 50, 60]);
-            const high = certain * 2 + randomChoice([10, 20]);
+            const certain = randomChoice([40, 50, 60, 70]);
+            const high = certain * 2 + randomChoice([10, 20, 30]);
             const expected = high / 2;
             return {
               type: "true-false",
-              prompt: `True or false: A risk-averse person may prefer a certain payoff of $${certain} to a gamble with a 50% chance of $${high} and a 50% chance of $0, even though the gamble's expected value is $${expected}.`,
+              prompt: `True or false: A risk-averse person may prefer a certain payoff of $${certain} to a gamble with a 50% chance of $${high} and a 50% chance of $0, even though the gamble's expected monetary value is $${expected}.`,
               answer: true,
               explanation: "Risk-averse people can prefer certainty to a risky gamble even when the gamble has a higher expected value."
             };
@@ -420,13 +426,13 @@ const practiceParts = [
         description: "Accounting vs. economic profit and cost concepts.",
         generators: [
           () => {
-            const revenue = randomChoice([400, 520, 650, 780]);
-            const explicit = randomChoice([180, 220, 260, 300]);
-            const implicit = randomChoice([60, 80, 100, 120]);
+            const revenue = randomChoice([520, 650, 780, 920]);
+            const explicit = randomChoice([180, 240, 300, 360]);
+            const implicit = randomChoice([70, 90, 110, 140]);
             const profit = revenue - explicit - implicit;
             return {
               type: "short-answer",
-              prompt: `A firm's total revenue is $${revenue}, explicit costs are $${explicit}, and implicit costs are $${implicit}. What is economic profit in dollars?`,
+              prompt: `A firm's total revenue is $${revenue}, explicit costs are $${explicit}, and the owner's implicit opportunity costs are $${implicit}. What is the firm's economic profit in dollars?`,
               answers: [String(profit), `$${profit}`],
               explanation: `Economic profit = total revenue - explicit costs - implicit costs = $${revenue} - $${explicit} - $${implicit} = $${profit}.`
             };
@@ -441,17 +447,17 @@ const practiceParts = [
           () => {
             const scenarios = [
               {
-                prompt: "A firm is producing where marginal revenue is greater than marginal cost, and price is above average variable cost. What should it do to increase profit?",
+                prompt: "A competitive firm is producing where marginal revenue exceeds marginal cost, and price is above average variable cost. What change would increase profit?",
                 answer: 0,
                 explanation: "If MR > MC, producing more raises profit as long as shutdown conditions are satisfied."
               },
               {
-                prompt: "A firm is producing where marginal revenue is less than marginal cost, and price is above average variable cost. What should it do to increase profit?",
+                prompt: "A firm is producing where marginal revenue is below marginal cost, and price is still above average variable cost. What change would increase profit?",
                 answer: 1,
                 explanation: "If MR < MC, the firm should reduce output because the last units cost more than they add in revenue."
               },
               {
-                prompt: "A firm's price has fallen below average variable cost in the short run. What should it do?",
+                prompt: "A firm's price has fallen below average variable cost in the short run. What is the profit-maximizing short-run decision?",
                 answer: 3,
                 explanation: "If price is below AVC, the firm should shut down in the short run because it cannot cover variable costs."
               }
@@ -483,7 +489,7 @@ const practiceParts = [
             options: [
               "All inputs are variable.",
               "Firms can enter or exit the market.",
-              "At least one input must remain fixed.",
+              "At least one input must remain fixed by definition.",
               "Economic profit may be driven to zero by entry and exit."
             ],
             answers: [0, 1, 3],
@@ -505,12 +511,12 @@ const practiceParts = [
         generators: [
           () => ({
             type: "multiple-choice",
-            prompt: "Compared with a perfectly competitive market, a monopolist typically produces:",
+            prompt: "Compared with a perfectly competitive market, a single-price monopolist typically chooses which outcome?",
             options: [
               "More output at a lower price",
               "Less output at a higher price",
-              "The same output at the same price",
-              "Less output at a lower price"
+              "The same output at the same price because profit maximization is identical",
+              "Less output at a lower price because of economies of scale"
             ],
             answer: 1,
             explanation: "Monopolists restrict output and charge a higher price than the competitive benchmark."
@@ -524,12 +530,12 @@ const practiceParts = [
         generators: [
           () => ({
             type: "multi-select",
-            prompt: "Which factors can create or protect a monopoly?",
+            prompt: "Which factors can create or sustain monopoly power over time?",
             options: [
               "Control of a key resource",
               "Government-granted patent protection",
               "Strong economies of scale over the relevant market range",
-              "Perfectly free entry with no barriers"
+              "Perfectly free entry with no barriers to expansion"
             ],
             answers: [0, 1, 2],
             explanation: "Control of resources, legal barriers, and natural monopoly conditions can support monopoly power. Free entry does the opposite."
@@ -544,12 +550,12 @@ const practiceParts = [
           () => {
             const statements = [
               {
-                prompt: "True or false: In monopolistic competition, firms sell differentiated products and face downward-sloping demand curves.",
+                prompt: "True or false: In monopolistic competition, firms sell differentiated products and therefore face downward-sloping demand curves for their own varieties.",
                 answer: true,
                 explanation: "Product differentiation gives each firm some market power, so the firm's demand curve slopes downward."
               },
               {
-                prompt: "True or false: Firms in monopolistic competition sell identical products and are pure price takers.",
+                prompt: "True or false: Firms in monopolistic competition sell identical products and are pure price takers in both the short run and the long run.",
                 answer: false,
                 explanation: "That describes perfect competition, not monopolistic competition."
               }
@@ -574,12 +580,12 @@ const practiceParts = [
             ]);
             return {
               type: "multiple-choice",
-              prompt: `Two firms face a one-shot prisoner's dilemma. Each can either ${actionA[0]} or ${actionA[1]}. What outcome is most likely to be the Nash equilibrium?`,
+              prompt: `Two firms face a one-shot prisoner's dilemma. Each can either ${actionA[0]} or ${actionA[1]}. If each firm chooses its individually rational strategy, what outcome is most likely to be the Nash equilibrium?`,
               options: [
                 `Both firms ${actionA[0]}`,
                 `Both firms ${actionA[1]}`,
-                `One firm ${actionA[0]} and one firm ${actionA[1]} forever`,
-                "No equilibrium exists"
+                `One firm ${actionA[0]} and one firm ${actionA[1]} in a stable collusive outcome`,
+                "No equilibrium exists because the firms move simultaneously"
               ],
               answer: 1,
               explanation: `In the standard one-shot prisoner's dilemma, the dominant strategy is the more aggressive action, so both firms ${actionA[1]}.`
