@@ -1571,59 +1571,105 @@ function setHint(node, message) {
 function buildHint(question) {
   const prompt = question.prompt.toLowerCase();
   const topic = question.topic.toLowerCase();
+  const content = `${topic} ${prompt}`;
 
-  if (prompt.includes("comparative advantage")) {
-    return "Compute the opportunity cost of each good for each country first, then pick the country with the lower opportunity cost for the good being asked about.";
+  if (content.includes("normative statement")) {
+    return "Ask whether the statement describes the world as it is or makes a judgment about what should happen.";
   }
-  if (prompt.includes("opportunity cost")) {
-    return "Add up every relevant thing the decision-maker gives up, including forgone earnings and any direct costs mentioned in the scenario.";
+  if (content.includes("scarcity")) {
+    return "Scarcity does not disappear with smarter choices; it means limited resources force tradeoffs.";
   }
-  if (prompt.includes("elasticity")) {
-    return "Use elasticity as percentage change in quantity divided by percentage change in price, and focus on the absolute value before naming the category.";
+  if (content.includes("marginal thinking")) {
+    return "Focus on the next unit only: compare the extra benefit of one more action with its extra cost.";
   }
-  if (prompt.includes("tax brackets") || prompt.includes("average tax rate")) {
-    return "Compute the tax paid inside each bracket first, add those amounts, and only then divide by total income for the average tax rate.";
+  if (content.includes("opportunity cost")) {
+    return "Use the value of the best alternative given up, and include both forgone earnings and any direct costs mentioned.";
   }
-  if (prompt.includes("budget line")) {
-    return "Ask whether income changed or whether the price of one good changed; that tells you whether the line shifts in parallel or rotates around an intercept.";
+  if (content.includes("comparative advantage") || content.includes("specialize")) {
+    return "Convert each producer's output into opportunity costs first, then assign each task to the lower-opportunity-cost producer.";
   }
-  if (prompt.includes("gini coefficient")) {
-    return "A higher Gini tells you inequality is greater, but it does not by itself pin down mean income, median income, or poverty.";
+  if (content.includes("equilibrium quantity") || content.includes("inverse demand")) {
+    return "Set demand equal to supply, solve for Q first, and only then back out price if you need it.";
   }
-  if (prompt.includes("economic profit")) {
+  if (content.includes("close substitute") || content.includes("input falls")) {
+    return "Track the supply shift and demand shift separately, then ask which variable is guaranteed and which one is ambiguous.";
+  }
+  if (content.includes("elasticity")) {
+    return "Use the midpoint formula and take the absolute value before deciding whether demand is elastic or inelastic.";
+  }
+  if (content.includes("tax revenue")) {
+    return "A given tax usually raises more revenue where quantity shrinks less, so look for the more inelastic market.";
+  }
+  if (content.includes("consumer surplus")) {
+    return "Check whether the policy is binding. A non-binding control leaves price, quantity, and surplus unchanged.";
+  }
+  if (content.includes("price floor")) {
+    return "Compare quantity supplied with quantity demanded at the controlled price to decide whether the result is a surplus or shortage.";
+  }
+  if (content.includes("excise tax")) {
+    return "Look for the guaranteed wedge between buyer and seller prices and remember that taxes usually reduce the quantity traded.";
+  }
+  if (content.includes("tax brackets") || content.includes("average tax rate")) {
+    return "Compute tax owed bracket by bracket, sum it, then divide by total income for the average rate.";
+  }
+  if (content.includes("gini coefficient")) {
+    return "A higher Gini means more inequality, but it does not by itself reveal mean income, median income, or poverty rates.";
+  }
+  if (content.includes("public goods") || content.includes("green spaces")) {
+    return "For public-good provision, add marginal benefits across people vertically and compare that total with marginal cost.";
+  }
+  if (content.includes("means-tested") || content.includes("snap")) {
+    return "Separate cash transfers from in-kind transfers, then ask which programs are limited by income eligibility.";
+  }
+  if (content.includes("externality") || content.includes("pollution")) {
+    return "Decide whether private decision-makers are ignoring an outside cost or benefit, then choose the policy that closes that gap.";
+  }
+  if (content.includes("coase theorem") || content.includes("property rights")) {
+    return "Compare the two sides' valuations and ask whether bargaining moves the resource to the higher-valued use.";
+  }
+  if (content.includes("budget line")) {
+    return "If only income changes, think parallel shift; if one price changes, think rotation around the other intercept.";
+  }
+  if (content.includes("interior optimum") || content.includes("mux/px") || content.includes("mucoffee/pcoffee")) {
+    return "At an interior optimum, equalize marginal utility per dollar across goods.";
+  }
+  if (content.includes("risk-averse") || content.includes("expected value") || content.includes("risk-neutral")) {
+    return "Separate expected monetary value from preferences: risk attitudes determine how people rank certainty versus lotteries.";
+  }
+  if (content.includes("economic profit")) {
     return "Economic profit subtracts both explicit costs and implicit opportunity costs from total revenue.";
   }
-  if (prompt.includes("coase theorem") || prompt.includes("property rights")) {
-    return "Compare the two sides' valuations first, then ask whether bargaining can move the resource to the higher-valued use.";
+  if (content.includes("fixed cost")) {
+    return "Use the identity fixed cost = total cost - variable cost.";
   }
-  if (prompt.includes("nash equilibrium") || prompt.includes("dominant strategy")) {
-    return "Mark each player's best response to the other player's action, then look for the cell where both best responses overlap.";
+  if (content.includes("avc") || content.includes("shut down")) {
+    return "The short-run shutdown point is the minimum AVC, so compare price with that benchmark first.";
   }
-  if (prompt.includes("monopolist") || prompt.includes("price discriminate")) {
-    return "For a single-price monopolist, derive marginal revenue from demand, set MR = MC, then read the price from the demand curve.";
+  if (content.includes("marginal revenue") || content.includes("marginal cost")) {
+    return "Use the MR-MC rule to choose direction: if MR > MC expand, if MR < MC contract.";
   }
-  if (prompt.includes("marginal revenue") || prompt.includes("marginal cost")) {
-    return "Compare MR and MC first, then check whether the firm is still covering variable costs before deciding whether it should keep producing.";
+  if (content.includes("diminishing returns") || content.includes("spreading effect")) {
+    return "Find where ATC stops falling and starts rising; that is where diminishing returns first overtakes spreading.";
   }
-  if (topic.includes("public goods")) {
-    return "For a classification question, look for non-rivalry and non-excludability; for a provision question, add marginal benefits across people and compare that total with marginal cost.";
+  if (content.includes("mpl")) {
+    return "More capital usually raises labor productivity, so compare MPL before and after the increase in fixed input.";
   }
-  if (topic.includes("externalities")) {
-    return "Think about whether the activity is overproduced or underproduced relative to the social optimum, then choose policies that move the market in the corrective direction.";
+  if (content.includes("monopolist") || content.includes("price discriminate")) {
+    return "For a single-price monopolist, derive MR from demand, set MR = MC, then read price from the demand curve.";
   }
-  if (topic.includes("risk") || prompt.includes("expected monetary value")) {
-    return "Separate expected value from preferences: the question is about how a risk-averse person compares certainty with a gamble.";
+  if (content.includes("monopoly power") || content.includes("patents") || content.includes("economies of scale")) {
+    return "Look for barriers to entry or cost conditions that keep rivals from entering and competing away market power.";
   }
-  if (question.type === "multi-select") {
-    return "More than one answer is correct here. Test each option separately instead of looking for a single best choice.";
+  if (content.includes("monopson")) {
+    return "Compare the wage floor with the distorted wage chosen by the buyer; a moderate minimum wage can move the market toward efficiency.";
   }
-  if (question.type === "short-answer") {
-    return "Identify the key formula or relationship in the prompt, compute carefully, and type only the final value or expression.";
+  if (content.includes("monopolistically competitive")) {
+    return "Use the long-run zero-profit condition, but remember firms can still face downward-sloping demand and excess capacity.";
   }
-  if (question.type === "true-false") {
-    return "Watch for a single word that makes the statement too strong, like always, never, only, or guaranteed.";
+  if (content.includes("dominant strategy") || content.includes("nash equilibrium")) {
+    return "Mark each player's best response to the other's action, then find the outcome where those best responses intersect.";
   }
-  return "Start from the core definition behind the topic, eliminate answers that are too absolute, and choose the option that best matches the economic logic.";
+  return "Start from the central economic relationship in the prompt and work from the concept being tested before looking at the answer choices.";
 }
 
 function resetQuestion(question, body, hint, feedback, hintBtn) {
