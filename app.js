@@ -132,6 +132,7 @@ const practiceParts = [
             return {
               type: "short-answer",
               prompt: `Suppose inverse demand is P = ${demandIntercept} - ${demandSlope}Q and inverse supply is P = ${supplyIntercept} + ${supplySlope}Q. What is the equilibrium quantity?`,
+              numericAnswer: quantity,
               answers: [formatNumber(quantity)],
               explanation: `Set demand equal to supply: ${demandIntercept} - ${demandSlope}Q = ${supplyIntercept} + ${supplySlope}Q, so Q = ${formatNumber(quantity)}.`
             };
@@ -182,6 +183,8 @@ const practiceParts = [
             return {
               type: "short-answer",
               prompt: `If price falls from $${startPrice} to $${endPrice} and quantity demanded rises from ${startQuantity} to ${endQuantity}, what is the midpoint price elasticity of demand? Round to one decimal place.`,
+              numericAnswer: elasticity,
+              roundingDigits: 1,
               answers: [elasticity.toFixed(1), formatNumber(elasticity)],
               explanation: `Using the midpoint formula gives elasticity ${elasticity.toFixed(1)} in absolute value.`
             };
@@ -281,10 +284,13 @@ const practiceParts = [
           () => {
             const income = 91000;
             const tax = 2000 + 4500 + 8000 + 350;
-            const averageRate = ((tax / income) * 100).toFixed(1);
+            const averageRateValue = (tax / income) * 100;
+            const averageRate = averageRateValue.toFixed(1);
             return {
               type: "short-answer",
               prompt: "A worker earns $91,000 and faces these tax brackets: 10% on the first $20,000, 15% on the next $30,000, 20% on the next $40,000, and 35% on income above $90,000. What is the average tax rate as a percent, rounded to one decimal place?",
+              numericAnswer: averageRateValue,
+              roundingDigits: 1,
               answers: [averageRate, `${averageRate}%`],
               explanation: `Total tax is $${tax}. Average tax rate = ${tax}/${income} = ${averageRate}%.`
             };
@@ -418,6 +424,7 @@ const practiceParts = [
             return {
               type: "short-answer",
               prompt: `A consumer is at an interior optimum. Their marginal utility from coffee is ${muCoffee}, the price of coffee is $${priceCoffee}, and the price of manuals is $${priceManuals}. What must marginal utility from manuals be?`,
+              numericAnswer: muManuals,
               answers: [formatNumber(muManuals)],
               explanation: `At an interior optimum MUcoffee/Pcoffee = MUmanuals/Pmanuals, so MUmanuals = (${muCoffee}/${priceCoffee}) x ${priceManuals} = ${formatNumber(muManuals)}.`
             };
@@ -598,6 +605,7 @@ const practiceParts = [
             return {
               type: "short-answer",
               prompt: `A monopolist faces demand P = ${intercept} - Q and constant marginal cost of $${mc}. If it cannot price discriminate, what price does it charge?`,
+              numericAnswer: price,
               answers: [formatNumber(price), `$${formatNumber(price)}`],
               explanation: `For linear demand, MR = ${intercept} - 2Q. Setting MR = MC gives Q = ${formatNumber(quantity)}, so price is ${intercept} - ${formatNumber(quantity)} = $${formatNumber(price)}.`
             };
@@ -818,6 +826,116 @@ function formatNumber(value) {
 
 function normalizeAnswer(value) {
   return value.toLowerCase().replace(/\$/g, "").replace(/,/g, "").replace(/\s+/g, "");
+}
+
+function roundToDecimalPlaces(value, decimalPlaces) {
+  const multiplier = 10 ** decimalPlaces;
+  return Math.round((value + Number.EPSILON) * multiplier) / multiplier;
+}
+
+function extractNumericValue(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const match = value.trim().match(/-?\d[\d,]*(?:\.\d+)?/);
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[0].replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function countTypedDecimalPlaces(value) {
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const match = value.trim().match(/-?\d[\d,]*(?:\.(\d+))?/);
+  return match && match[1] ? match[1].length : 0;
+}
+
+function findRoundingDigits(prompt) {
+  const normalizedPrompt = prompt.toLowerCase();
+  const digitMatch = normalizedPrompt.match(/round(?:ed)? to (?:the )?(\d+) decimal place/);
+  if (digitMatch) {
+    return Number(digitMatch[1]);
+  }
+
+  const wordMatch = normalizedPrompt.match(/round(?:ed)? to (?:the )?(one|two|three) decimal place/);
+  if (!wordMatch) {
+    return null;
+  }
+
+  const wordToDigits = {
+    one: 1,
+    two: 2,
+    three: 3
+  };
+  return wordToDigits[wordMatch[1]] ?? null;
+}
+
+function getShortAnswerNumericTargets(question) {
+  const numericTargets = [];
+
+  if (typeof question.numericAnswer === "number" && Number.isFinite(question.numericAnswer)) {
+    numericTargets.push(question.numericAnswer);
+  }
+
+  question.answers.forEach(answer => {
+    const parsed = extractNumericValue(answer);
+    if (parsed !== null) {
+      numericTargets.push(parsed);
+    }
+  });
+
+  return [...new Set(numericTargets)];
+}
+
+function evaluateShortAnswer(question, rawAnswer) {
+  const normalized = normalizeAnswer(rawAnswer.trim());
+  if (!normalized) {
+    return { answered: false, correct: false };
+  }
+
+  if (question.answers.some(answer => normalizeAnswer(answer) === normalized)) {
+    return { answered: true, correct: true };
+  }
+
+  const numericInput = extractNumericValue(rawAnswer);
+  const numericTargets = getShortAnswerNumericTargets(question);
+
+  if (numericInput === null || numericTargets.length === 0) {
+    return { answered: true, correct: false };
+  }
+
+  const roundingDigits = Number.isInteger(question.roundingDigits)
+    ? question.roundingDigits
+    : findRoundingDigits(question.prompt);
+  const typedDecimalPlaces = countTypedDecimalPlaces(rawAnswer);
+
+  if (roundingDigits !== null) {
+    if (typedDecimalPlaces > roundingDigits) {
+      return { answered: true, correct: false };
+    }
+
+    const roundedInput = roundToDecimalPlaces(numericInput, roundingDigits);
+    const correct = numericTargets.some(target => roundToDecimalPlaces(target, roundingDigits) === roundedInput);
+    return { answered: true, correct };
+  }
+
+  if (typedDecimalPlaces > 3) {
+    return { answered: true, correct: false };
+  }
+
+  const roundedInput = roundToDecimalPlaces(numericInput, 3);
+  const correct = numericTargets.some(target => roundToDecimalPlaces(target, 3) === roundedInput);
+  return { answered: true, correct };
 }
 
 function clampQuestionCount(value) {
@@ -1739,12 +1857,7 @@ function evaluateQuestion(question, body) {
 
   if (question.type === "short-answer") {
     const input = body.querySelector(`input[name="${question.id}"]`);
-    const normalized = normalizeAnswer(input.value.trim());
-    if (!normalized) {
-      return { answered: false, correct: false };
-    }
-    const correct = question.answers.some(answer => normalizeAnswer(answer) === normalized);
-    return { answered: true, correct };
+    return evaluateShortAnswer(question, input.value.trim());
   }
 
   return { answered: false, correct: false };
