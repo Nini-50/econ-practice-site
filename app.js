@@ -762,6 +762,8 @@ const loginBtn = document.getElementById("loginBtn");
 const createAccountBtn = document.getElementById("createAccountBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const accountName = document.getElementById("accountName");
+const feedbackSummary = document.getElementById("feedbackSummary");
+const exportFeedbackBtn = document.getElementById("exportFeedbackBtn");
 const topicProgressList = document.getElementById("topicProgressList");
 const partNav = document.getElementById("partNav");
 const partsContainer = document.getElementById("partsContainer");
@@ -867,6 +869,12 @@ function createEmptyTopicProgress() {
   return { attempted: 0, correct: 0 };
 }
 
+function ensureFeedbackReportsShape(user) {
+  if (!Array.isArray(user.feedbackReports)) {
+    user.feedbackReports = [];
+  }
+}
+
 function ensureTopicProgressShape(user) {
   if (!user.progress) {
     user.progress = {};
@@ -877,6 +885,11 @@ function ensureTopicProgressShape(user) {
       user.progress[topic.id] = createEmptyTopicProgress();
     }
   });
+}
+
+function ensureUserDataShape(user) {
+  ensureTopicProgressShape(user);
+  ensureFeedbackReportsShape(user);
 }
 
 function setAuthFeedback(message, isError = true) {
@@ -905,6 +918,21 @@ function renderAccountPanel() {
   } else {
     accountName.textContent = "Not logged in";
   }
+}
+
+function renderFeedbackSummary() {
+  if (!currentUser) {
+    feedbackSummary.textContent = "Log in to save question feedback in this browser and download your reports later.";
+    exportFeedbackBtn.disabled = true;
+    return;
+  }
+
+  ensureFeedbackReportsShape(currentUser);
+  const reportCount = currentUser.feedbackReports.length;
+  feedbackSummary.textContent = reportCount === 0
+    ? "No feedback reports saved yet. If a question looks wrong, report it from the workspace and it will be saved in this browser."
+    : `${reportCount} feedback report${reportCount === 1 ? "" : "s"} saved in this browser for ${currentUser.username}.`;
+  exportFeedbackBtn.disabled = reportCount === 0;
 }
 
 function renderTopicProgress() {
@@ -981,11 +1009,12 @@ function renderTopicProgress() {
 function applyLoggedInUser(usernameKey, user) {
   currentUsernameKey = usernameKey;
   currentUser = user;
-  ensureTopicProgressShape(currentUser);
+  ensureUserDataShape(currentUser);
   persistCurrentUser();
   saveActiveUsernameKey(usernameKey);
   setAuthenticatedState(true);
   renderAccountPanel();
+  renderFeedbackSummary();
   renderTopicProgress();
   authPassword.value = "";
   authConfirmPassword.value = "";
@@ -1044,7 +1073,8 @@ function createAccount() {
   const user = {
     username,
     passwordHash: hashPassword(usernameKey, password),
-    progress: {}
+    progress: {},
+    feedbackReports: []
   };
 
   accounts[usernameKey] = user;
@@ -1079,6 +1109,7 @@ function logout() {
   clearActiveUsernameKey();
   setAuthenticatedState(false);
   renderAccountPanel();
+  renderFeedbackSummary();
   renderTopicProgress();
   authUsername.value = "";
   authPassword.value = "";
@@ -1094,7 +1125,7 @@ function recordProgress(question, isCorrect, card) {
     return;
   }
 
-  ensureTopicProgressShape(currentUser);
+  ensureUserDataShape(currentUser);
   const topicStats = currentUser.progress[question.topicId] || createEmptyTopicProgress();
   topicStats.attempted += 1;
   if (isCorrect) {
@@ -1434,6 +1465,12 @@ function renderQuestion(question, number) {
   const hintBtn = fragment.querySelector(".hint-btn");
   const checkBtn = fragment.querySelector(".check-btn");
   const resetBtn = fragment.querySelector(".reset-btn");
+  const reportToggleBtn = fragment.querySelector(".report-toggle-btn");
+  const reportForm = fragment.querySelector(".report-form");
+  const reportSelect = fragment.querySelector(".report-select");
+  const reportSubmitBtn = fragment.querySelector(".report-submit-btn");
+  const reportCancelBtn = fragment.querySelector(".report-cancel-btn");
+  const reportStatus = fragment.querySelector(".report-status");
   const hint = fragment.querySelector(".hint");
   const feedback = fragment.querySelector(".feedback");
 
@@ -1491,7 +1528,53 @@ function renderQuestion(question, number) {
   });
 
   resetBtn.addEventListener("click", () => {
-    resetQuestion(question, body, hint, feedback, hintBtn);
+    resetQuestion(question, body, hint, feedback, hintBtn, reportForm, reportStatus, reportSelect, reportToggleBtn);
+  });
+
+  reportToggleBtn.addEventListener("click", () => {
+    const willShow = reportForm.hidden;
+    reportForm.hidden = !willShow;
+    if (willShow) {
+      reportToggleBtn.textContent = "Hide report form";
+      reportSelect.focus();
+    } else {
+      reportToggleBtn.textContent = "Report answer issue";
+    }
+  });
+
+  reportCancelBtn.addEventListener("click", () => {
+    reportForm.hidden = true;
+    reportSelect.value = "";
+    reportToggleBtn.textContent = "Report answer issue";
+  });
+
+  reportSubmitBtn.addEventListener("click", () => {
+    const issueType = reportSelect.value;
+    if (!issueType) {
+      setReportStatus(reportStatus, "Choose the issue type from the dropdown before submitting.", false);
+      return;
+    }
+
+    const evaluation = evaluateQuestion(question, body);
+    if (evaluation.answered) {
+      setFeedback(
+        feedback,
+        `${evaluation.correct ? "Correct." : "Not quite."} ${question.explanation}`,
+        evaluation.correct
+      );
+    }
+
+    saveQuestionFeedback(buildFeedbackReport(question, body, issueType, evaluation));
+    reportSelect.value = "";
+    reportForm.hidden = true;
+    reportToggleBtn.textContent = "Report answer issue";
+    setReportStatus(
+      reportStatus,
+      evaluation.answered
+        ? `Thanks - your feedback was saved, and the question was rechecked against the saved answer key.`
+        : "Thanks - your feedback was saved. The question is still attached so it can be reviewed later.",
+      true
+    );
   });
 
   return fragment;
@@ -1566,6 +1649,11 @@ function setFeedback(node, message, isCorrect) {
 function setHint(node, message) {
   node.className = "hint is-visible";
   node.innerHTML = `<strong>Hint</strong><span>${message}</span>`;
+}
+
+function setReportStatus(node, message, isSuccess) {
+  node.className = `report-status is-visible ${isSuccess ? "is-success" : "is-error"}`;
+  node.innerHTML = `<strong>${isSuccess ? "Feedback saved" : "Feedback not saved"}</strong><span>${message}</span>`;
 }
 
 function buildHint(question) {
@@ -1672,7 +1760,123 @@ function buildHint(question) {
   return "Start from the central economic relationship in the prompt and work from the concept being tested before looking at the answer choices.";
 }
 
-function resetQuestion(question, body, hint, feedback, hintBtn) {
+function getSelectedOptionLabels(question, body) {
+  return Array.from(body.querySelectorAll(`input[name="${question.id}"]:checked`))
+    .map(input => {
+      if (question.type === "true-false") {
+        return input.value === "true" ? "True" : "False";
+      }
+
+      const optionIndex = Number(input.value);
+      return question.options[optionIndex];
+    })
+    .filter(Boolean);
+}
+
+function describeCurrentResponse(question, body) {
+  if (question.type === "short-answer") {
+    const input = body.querySelector(`input[name="${question.id}"]`);
+    return input.value.trim() || "No answer entered";
+  }
+
+  const selectedLabels = getSelectedOptionLabels(question, body);
+  if (selectedLabels.length === 0) {
+    return question.type === "multi-select" ? "No answers selected" : "No answer selected";
+  }
+
+  return selectedLabels.join(", ");
+}
+
+function describeExpectedAnswer(question) {
+  if (question.type === "multiple-choice") {
+    return question.options[question.answer];
+  }
+  if (question.type === "multi-select") {
+    return question.answers.map(index => question.options[index]).join(", ");
+  }
+  if (question.type === "true-false") {
+    return question.answer ? "True" : "False";
+  }
+  return question.answers.join(" / ");
+}
+
+function formatIssueType(issueType) {
+  const labels = {
+    "answer-marked-wrong": "My answer should be marked correct",
+    "expected-answer-wrong": "The saved correct answer looks wrong",
+    "explanation-wrong": "The explanation looks wrong",
+    "question-unclear": "The question wording is unclear",
+    "other-problem": "Other problem with this question"
+  };
+  return labels[issueType] || issueType;
+}
+
+function buildRecheckStatus(evaluation) {
+  if (!evaluation.answered) {
+    return "No learner answer was selected when the report was submitted.";
+  }
+
+  return evaluation.correct
+    ? "Rechecked against the saved answer key: the current answer is marked correct."
+    : "Rechecked against the saved answer key: the current answer is marked incorrect.";
+}
+
+function buildFeedbackReport(question, body, issueType, evaluation) {
+  return {
+    id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    reportedAt: new Date().toISOString(),
+    partTitle: question.partTitle,
+    topicId: question.topicId,
+    topic: question.topic,
+    questionType: formatType(question.type),
+    prompt: question.prompt,
+    enteredAnswer: describeCurrentResponse(question, body),
+    expectedAnswer: describeExpectedAnswer(question),
+    explanation: question.explanation,
+    issueType,
+    issueLabel: formatIssueType(issueType),
+    recheckStatus: buildRecheckStatus(evaluation)
+  };
+}
+
+function saveQuestionFeedback(report) {
+  if (!currentUser) {
+    return;
+  }
+
+  ensureUserDataShape(currentUser);
+  currentUser.feedbackReports.unshift(report);
+  persistCurrentUser();
+  renderFeedbackSummary();
+}
+
+function exportFeedbackReports() {
+  if (!currentUser) {
+    return;
+  }
+
+  ensureFeedbackReportsShape(currentUser);
+  if (currentUser.feedbackReports.length === 0) {
+    return;
+  }
+
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    username: currentUser.username,
+    reports: currentUser.feedbackReports
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${normalizeUsername(currentUser.username) || "econ"}-question-feedback.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function resetQuestion(question, body, hint, feedback, hintBtn, reportForm, reportStatus, reportSelect, reportToggleBtn) {
   if (question.type === "short-answer") {
     const input = body.querySelector(`input[name="${question.id}"]`);
     input.value = "";
@@ -1691,6 +1895,11 @@ function resetQuestion(question, body, hint, feedback, hintBtn) {
   }
   feedback.className = "feedback";
   feedback.textContent = "";
+  reportForm.hidden = true;
+  reportSelect.value = "";
+  reportToggleBtn.textContent = "Report answer issue";
+  reportStatus.className = "report-status";
+  reportStatus.textContent = "";
 }
 
 function formatType(type) {
@@ -1763,6 +1972,7 @@ function init() {
   renderPartSections();
   renderEmptyState();
   renderAccountPanel();
+  renderFeedbackSummary();
   renderTopicProgress();
   const restoredSession = restoreActiveSession();
   setAuthenticatedState(restoredSession);
@@ -1770,6 +1980,7 @@ function init() {
   loginBtn.addEventListener("click", login);
   createAccountBtn.addEventListener("click", createAccount);
   logoutBtn.addEventListener("click", logout);
+  exportFeedbackBtn.addEventListener("click", exportFeedbackReports);
 
   generateTopicBtn.addEventListener("click", () => {
     const topicId = topicSelect.value;

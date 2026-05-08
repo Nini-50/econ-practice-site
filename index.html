@@ -75,6 +75,14 @@
       </div>
 
       <div class="sidebar__panel">
+        <h2>Question feedback</h2>
+        <p id="feedbackSummary" class="sidebar-note">
+          Report any question whose answer or explanation looks wrong. Reports are saved only in this browser until you download them.
+        </p>
+        <button class="button button--ghost" id="exportFeedbackBtn" type="button">Download feedback reports</button>
+      </div>
+
+      <div class="sidebar__panel">
         <h2>Topic progress</h2>
         <div id="topicProgressList" class="progress-list"></div>
       </div>
@@ -214,7 +222,26 @@
         <button class="button button--ghost hint-btn" type="button">Show hint</button>
         <button class="button button--secondary check-btn" type="button">Check answer</button>
         <button class="button button--ghost reset-btn" type="button">Reset</button>
+        <button class="button button--ghost report-toggle-btn" type="button">Report answer issue</button>
       </div>
+      <div class="report-form" hidden>
+        <label class="field">
+          <span>What seems wrong with this question?</span>
+          <select class="report-select">
+            <option value="">Choose an issue</option>
+            <option value="answer-marked-wrong">My answer should be marked correct</option>
+            <option value="expected-answer-wrong">The saved correct answer looks wrong</option>
+            <option value="explanation-wrong">The explanation looks wrong</option>
+            <option value="question-unclear">The question wording is unclear</option>
+            <option value="other-problem">Other problem with this question</option>
+          </select>
+        </label>
+        <div class="report-form__actions">
+          <button class="button button--secondary report-submit-btn" type="button">Submit feedback</button>
+          <button class="button button--ghost report-cancel-btn" type="button">Cancel</button>
+        </div>
+      </div>
+      <div class="report-status" aria-live="polite"></div>
       <div class="hint" aria-live="polite"></div>
       <div class="feedback" aria-live="polite"></div>
     </article>

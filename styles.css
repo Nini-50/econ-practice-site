@@ -38,7 +38,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -393,12 +394,17 @@ select {
 }
 
 select,
+textarea,
 input[type="text"] {
   width: 100%;
   padding: 11px 13px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: white;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .workspace {
@@ -645,6 +651,11 @@ input[type="text"] {
   align-items: center;
 }
 
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .button--primary {
   background: var(--primary);
   color: white;
@@ -671,10 +682,26 @@ input[type="text"] {
   padding: 0;
 }
 
+.report-status,
 .hint {
   min-height: 0;
   border-radius: 12px;
   padding: 0;
+}
+
+.report-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fbfcff;
+}
+
+.report-form__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .hint.is-visible {
@@ -689,8 +716,21 @@ input[type="text"] {
   margin-bottom: 6px;
 }
 
+.report-status.is-visible,
 .feedback.is-visible {
   padding: 14px;
+}
+
+.report-status.is-success {
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+  color: #067647;
+}
+
+.report-status.is-error {
+  background: #fff6ed;
+  border: 1px solid #f5c08a;
+  color: var(--warning);
 }
 
 .feedback.is-correct {
@@ -706,6 +746,11 @@ input[type="text"] {
 }
 
 .feedback strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.report-status strong {
   display: block;
   margin-bottom: 6px;
 }
