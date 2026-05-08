@@ -1149,26 +1149,85 @@ function buildQuestion(topic, generated) {
   };
 }
 
-function generateQuestionFromTopic(topicId, allowedTypes = topicById[topicId].availableTypes) {
+function normalizeQuestionSignatureValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeQuestionSignatureValue);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value)
+      .sort()
+      .reduce((normalized, key) => {
+        normalized[key] = normalizeQuestionSignatureValue(value[key]);
+        return normalized;
+      }, {});
+  }
+
+  if (typeof value === "string") {
+    return value.trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  return value;
+}
+
+function createQuestionSignature(question) {
+  return JSON.stringify(normalizeQuestionSignatureValue({
+    topicId: question.topicId,
+    type: question.type,
+    prompt: question.prompt,
+    options: question.options || [],
+    answer: question.answer,
+    answers: question.answers || [],
+    explanation: question.explanation
+  }));
+}
+
+function generateUniqueQuestion(topic, matchingGenerators, seenSignatures = null) {
+  if (matchingGenerators.length === 0) {
+    return null;
+  }
+
+  if (!seenSignatures) {
+    return buildQuestion(topic, randomChoice(matchingGenerators).create());
+  }
+
+  const maxAttempts = Math.max(12, matchingGenerators.length * 6);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const question = buildQuestion(topic, randomChoice(matchingGenerators).create());
+    const signature = createQuestionSignature(question);
+    if (!seenSignatures.has(signature)) {
+      seenSignatures.add(signature);
+      return question;
+    }
+  }
+
+  const unusedQuestions = shuffleArray(matchingGenerators)
+    .map(generator => buildQuestion(topic, generator.create()))
+    .find(question => {
+      const signature = createQuestionSignature(question);
+      if (seenSignatures.has(signature)) {
+        return false;
+      }
+      seenSignatures.add(signature);
+      return true;
+    });
+
+  return unusedQuestions || null;
+}
+
+function generateQuestionFromTopic(topicId, allowedTypes = topicById[topicId].availableTypes, seenSignatures = null) {
   const topic = topicById[topicId];
   const matchingGenerators = topic.generatorPool.filter(generator => allowedTypes.includes(generator.type));
 
-  if (matchingGenerators.length === 0) {
-    return null;
-  }
-
-  return buildQuestion(topic, randomChoice(matchingGenerators).create());
+  return generateUniqueQuestion(topic, matchingGenerators, seenSignatures);
 }
 
-function generateQuestionFromTopicAndType(topicId, type) {
+function generateQuestionFromTopicAndType(topicId, type, seenSignatures = null) {
   const topic = topicById[topicId];
   const matchingGenerators = topic.generatorPool.filter(generator => generator.type === type);
 
-  if (matchingGenerators.length === 0) {
-    return null;
-  }
-
-  return buildQuestion(topic, randomChoice(matchingGenerators).create());
+  return generateUniqueQuestion(topic, matchingGenerators, seenSignatures);
 }
 
 function getEligibleTopicData(topicIds, allowedTypes) {
@@ -1212,8 +1271,8 @@ function pickTopicForType(type, eligibleTopics, topicUsage, partUsage) {
   return pickBalancedTopic(candidates, topicUsage, partUsage);
 }
 
-function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage) {
-  const question = generateQuestionFromTopicAndType(topic.id, type);
+function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage, seenSignatures) {
+  const question = generateQuestionFromTopicAndType(topic.id, type, seenSignatures);
   if (!question) {
     return false;
   }
@@ -1225,6 +1284,70 @@ function addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, part
   return true;
 }
 
+function sortByUsageWithShuffle(items, usage, getKey = item => item) {
+  return shuffleArray(items).sort((left, right) => (usage[getKey(left)] || 0) - (usage[getKey(right)] || 0));
+}
+
+function addQuestionForTopic(questions, topic, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures) {
+  const matchingTypes = sortByUsageWithShuffle(
+    topic.availableTypes.filter(type => eligibleTypes.includes(type)),
+    typeUsage
+  );
+
+  for (const type of matchingTypes) {
+    if (addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage, seenSignatures)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function addQuestionForType(questions, type, eligibleTopics, topicUsage, typeUsage, partUsage, seenSignatures) {
+  const matchingTopics = sortByUsageWithShuffle(
+    eligibleTopics.filter(topic => topic.availableTypes.includes(type)),
+    topicUsage,
+    topic => topic.id
+  ).sort((left, right) => (partUsage[left.partId] || 0) - (partUsage[right.partId] || 0));
+
+  for (const topic of matchingTopics) {
+    if (addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage, seenSignatures)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function addQuestionForPart(questions, partId, eligibleTopics, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures) {
+  const partTopics = sortByUsageWithShuffle(
+    eligibleTopics.filter(topic => topic.partId === partId),
+    topicUsage,
+    topic => topic.id
+  );
+
+  for (const topic of partTopics) {
+    if (addQuestionForTopic(questions, topic, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function addAnyUniqueQuestion(questions, eligibleTopics, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures) {
+  const orderedTopics = sortByUsageWithShuffle(eligibleTopics, topicUsage, topic => topic.id)
+    .sort((left, right) => (partUsage[left.partId] || 0) - (partUsage[right.partId] || 0));
+
+  for (const topic of orderedTopics) {
+    if (addQuestionForTopic(questions, topic, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
   const { eligibleTopics, eligibleTypes } = getEligibleTopicData(topicIds, allowedTypes);
 
@@ -1234,6 +1357,7 @@ function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
 
   const safeCount = clampQuestionCount(count);
   const questions = [];
+  const seenSignatures = new Set();
   const topicUsage = {};
   const typeUsage = {};
   const partUsage = {};
@@ -1261,13 +1385,7 @@ function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
       if (questions.length >= minimumCoverageCount) {
         return;
       }
-
-      const partTopics = eligibleTopics.filter(topic => topic.partId === partId);
-      const topic = pickBalancedTopic(partTopics, topicUsage, partUsage);
-      const type = topic ? pickTypeForTopic(topic, eligibleTypes, typeUsage) : null;
-      if (topic && type) {
-        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage);
-      }
+      addQuestionForPart(questions, partId, eligibleTopics, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures);
     });
   }
 
@@ -1276,10 +1394,7 @@ function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
       if (questions.length >= minimumCoverageCount) {
         return;
       }
-      const leastUsedType = pickTypeForTopic(topic, eligibleTypes, typeUsage);
-      if (leastUsedType) {
-        addBalancedQuestion(questions, topic, leastUsedType, topicUsage, typeUsage, partUsage);
-      }
+      addQuestionForTopic(questions, topic, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures);
     });
   }
 
@@ -1288,18 +1403,12 @@ function generateQuestionSet(topicIds, allowedTypes, count, options = {}) {
       if (questions.length >= minimumCoverageCount || (typeUsage[type] || 0) > 0) {
         return;
       }
-      const topic = pickTopicForType(type, eligibleTopics, topicUsage, partUsage);
-      if (topic) {
-        addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage);
-      }
+      addQuestionForType(questions, type, eligibleTopics, topicUsage, typeUsage, partUsage, seenSignatures);
     });
   }
 
   while (questions.length < minimumCoverageCount) {
-    const topic = pickBalancedTopic(eligibleTopics, topicUsage, partUsage);
-    const type = topic ? pickTypeForTopic(topic, eligibleTypes, typeUsage) : null;
-
-    if (!topic || !type || !addBalancedQuestion(questions, topic, type, topicUsage, typeUsage, partUsage)) {
+    if (!addAnyUniqueQuestion(questions, eligibleTopics, eligibleTypes, topicUsage, typeUsage, partUsage, seenSignatures)) {
       break;
     }
   }
